@@ -1,0 +1,4 @@
+#include <lib_version.h>
+
+const char *__lib_version_string = "@_build_version@";
+const char *__lib_build_time_string = "@_time_stamp@";

@@ -1,0 +1,10 @@
+#ifndef __VERSION_H__
+#define __VERSION_H__
+
+extern const char *__lib_version_string;
+extern const char *__lib_build_time_string;
+
+#define VERSION __lib_version_string 
+#define BUILD_TIME __lib_version_string
+
+#endif

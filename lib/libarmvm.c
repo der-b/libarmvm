@@ -1,11 +1,11 @@
 #include <string.h>
 #include <stdio.h>
 #include <armvm.h>
+#include <lib_version.h>
 
 const char *armvm_version()
 {
-#warning "Dummy implementation"
-    return "No Version";
+    return VERSION;
 }
 
 

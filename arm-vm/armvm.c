@@ -1,12 +1,21 @@
 #include <stdio.h>
+#include <string.h>
 #include <armvm_config.h>
 #include <armvm.h>
+#include <cli_version.h>
 
 int main(int argc, char **argv)
 {
     struct armvm_opts opts;
     struct armvm armvm;
     struct armvm_config conf;
+
+    if (0 != strcmp(VERSION, armvm_version())) {
+        fprintf(stderr, "ERR: Version of the command line interface does not match the version libarmvm.so.\n");
+        fprintf(stderr, "cli version: %s\n", VERSION);
+        fprintf(stderr, "lib version: %s\n", armvm_version());
+        goto err;
+    }
 
     if (armvm_config_init(&conf, argc, argv)) {
         armvm_config_usage(argc, argv);

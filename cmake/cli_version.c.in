@@ -1,0 +1,4 @@
+#include <cli_version.h>
+
+const char *__cli_version_string = "@_build_version@";
+const char *__cli_build_time_string = "@_time_stamp@";
