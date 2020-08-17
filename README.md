@@ -5,6 +5,9 @@
 ## Build
 
 ``` bash
+git submodule init
+git submodule update
+make example_programs
 make
 ```
 
