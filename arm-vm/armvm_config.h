@@ -1,6 +1,9 @@
 #ifndef __ARMVM_CONFIG_H__
 #define __ARMVM_CONFIG_H__
 
+#include <stdint.h>
+#include <armvm.h>
+
 /** @file */
 
 #define ARMVM_CONFIG_SUCCESS ( 0)
@@ -12,6 +15,12 @@
  * configuration fails or environment variables.
  */
 struct armvm_config {
+    uint8_t show_help;
+    uint8_t show_version;
+    enum armvm_ISA isa;
+    char *program;
+    uint64_t program_address;
+    uint64_t init_program_counter;
 };
 
 /**

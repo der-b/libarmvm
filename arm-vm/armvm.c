@@ -6,6 +6,7 @@
 
 int main(int argc, char **argv)
 {
+    int ret_val = 0;
     struct armvm_opts opts;
     struct armvm armvm;
     struct armvm_config conf;
@@ -14,35 +15,60 @@ int main(int argc, char **argv)
         fprintf(stderr, "ERR: Version of the command line interface does not match the version libarmvm.so.\n");
         fprintf(stderr, "cli version: %s\n", VERSION);
         fprintf(stderr, "lib version: %s\n", armvm_version());
+        ret_val = 1;
         goto err;
     }
 
     if (armvm_config_init(&conf, argc, argv)) {
         armvm_config_usage(argc, argv);
-        fprintf(stderr, "ERR: armvm_config_init() faild.\n");
+        ret_val = 1;
         goto err;
     }
 
-    if (armvm_opts_init(&opts)) {
-        fprintf(stderr, "ERR: armvm_opts_init() faild.\n");
+    if (conf.show_help) {
+        armvm_config_usage(argc, argv);
+        ret_val = 0;
         goto err_conf;
     }
 
+    if (conf.show_version) {
+        printf("cli version     : %s\n", VERSION);
+        printf("libarmvm version: %s\n", armvm_version());
+        ret_val = 0;
+        goto err_conf;
+    }
+
+    if (!conf.program) {
+        fprintf(stderr, "ERROR: You need to provide a program which shall be loaded to the virtual machine (use --program).\n");
+        ret_val = 1;
+        goto err_conf;
+    }
+
+    if (armvm_opts_init(&opts)) {
+        fprintf(stderr, "ERROR: armvm_opts_init() faild.\n");
+        ret_val = 1;
+        goto err_conf;
+    }
+
+    opts.isa = conf.isa;
+#warning "set all options!"
+
     if (armvm_start(&armvm, &opts)) {
-        fprintf(stderr, "ERR: armvm_start() faild.\n");
+        fprintf(stderr, "ERROR: armvm_start() faild.\n");
+        ret_val = 1;
         goto err_conf;
     }
 
     if (armvm_config_cleanup(&conf)) {
-        fprintf(stderr, "ERR: armvm_config_cleanup() faild.\n");
+        fprintf(stderr, "ERROR: armvm_config_cleanup() faild.\n");
+        ret_val = 1;
         goto err;
     }
 
-    return 0;
 err_conf:
     if (armvm_config_cleanup(&conf)) {
         fprintf(stderr, "WARN: armvm_config_cleanup() faild.\n");
     }
 err:
-    return 1;
+    return ret_val;
 }
