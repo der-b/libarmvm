@@ -26,6 +26,15 @@ add_custom_command(TARGET version
 
 
 ##
+## libarmvm-utils
+#################################################
+
+add_library(armvm-utils SHARED
+    lib/utils/isa_to_string.c
+    lib/utils/string_to_isa.c)
+target_include_directories(armvm-utils INTERFACE "${PROJECT_SOURCE_DIR}/include")
+
+##
 ## libarmvm
 #################################################
 
@@ -34,7 +43,8 @@ add_library(armvm SHARED
     ${PROJECT_BINARY_DIR}/lib_version.c)
 target_include_directories(armvm INTERFACE "${PROJECT_SOURCE_DIR}/include"
                                  PRIVATE "${PROJECT_BINARY_DIR}")
-add_dependencies(armvm armvm)
+target_link_libraries(armvm LINK_PUBLIC armvm-utils)
+add_dependencies(armvm armvm-utils)
 
 
 ##
@@ -66,12 +76,8 @@ if (NOT TARGET check_memcheck)
     add_custom_target(check_memcheck COMMAND ${CMAKE_CTEST_COMMAND} --forec-new-ctest-process --test-action memcheck -R "^test_.*$")
 endif()
 
-if (NOT TARGET check_threads)
-    add_custom_target(check_threads COMMAND ${CMAKE_CTEST_COMMAND} --forec-new-ctest-process --test-action memcheck --overwrite MemoryCheckCommandOptions='--tool=helgrind --error-exitcode=1 -q' -R "^threads_.*$")
-endif()
-
 if (NOT TARGET check)
-    add_custom_target(check DEPENDS check_memcheck check_threads)
+    add_custom_target(check DEPENDS check_memcheck)
 endif()
 
-#add_subdirectory(test)
+add_subdirectory(test)

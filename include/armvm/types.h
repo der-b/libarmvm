@@ -10,7 +10,7 @@ enum armvm_ISA {
     ARMV7_M,
     ARMV8_M,
     // This have to be the last entry of the enum
-    UNDEFINED_ISA /**< This is an non existend ISA and is used for internal purposes*/
+    UNDEFINED_ISA /**< This is used for internal purposes. */
 };
 
 

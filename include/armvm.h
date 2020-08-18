@@ -3,6 +3,7 @@
 #define __ARMVM_H__
 
 #include <armvm/types.h>
+#include <armvm/utils.h>
 
 #define ARMVM_RET_SUCCESS       ( 0)
 #define ARMVM_RET_FAIL          (-1)
