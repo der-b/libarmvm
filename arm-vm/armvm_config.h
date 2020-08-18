@@ -17,7 +17,7 @@
 struct armvm_config {
     uint8_t show_help;
     uint8_t show_version;
-    enum armvm_ISA isa;
+    enum armvm_ISA_e isa;
     char *program;
     uint64_t program_address;
     uint64_t init_program_counter;

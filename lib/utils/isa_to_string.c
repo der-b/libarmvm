@@ -1,7 +1,7 @@
 #include <armvm/utils.h>
 #include <stddef.h>
 
-const char *armvm_utils_isa_to_string(enum armvm_ISA isa)
+const char *armvm_utils_isa_to_string(enum armvm_ISA_e isa)
 {
     switch (isa) {
         case ARMV6_M:

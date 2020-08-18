@@ -4,7 +4,7 @@
 
 #define STR_SIZE 15
 
-enum armvm_ISA armvm_utils_string_to_isa(const char *isa)
+enum armvm_ISA_e armvm_utils_string_to_isa(const char *isa)
 {
     char new_isa[STR_SIZE];
     size_t i;

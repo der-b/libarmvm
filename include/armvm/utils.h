@@ -8,13 +8,13 @@
  *
  * @return Pointer to a descriptive string or NULL if ISA is unknown.
  */
-const char *armvm_utils_isa_to_string(enum armvm_ISA isa);
+const char *armvm_utils_isa_to_string(enum armvm_ISA_e isa);
 
 /**
  * @brief Converts a string to an ISA.
  *
  * @return Returns an ISA on success or UNDEFINED_ISA on failure.
  */
-enum armvm_ISA armvm_utils_string_to_isa(const char *isa);
+enum armvm_ISA_e armvm_utils_string_to_isa(const char *isa);
 
 #endif
