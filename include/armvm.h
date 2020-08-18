@@ -28,6 +28,15 @@ int armvm_opts_init(struct armvm_opts *opts);
 
 
 /**
+ * @brief Clean up a armvm_opts structure.
+ *
+ * @param amvm_opts Pointer to armvm_opts to be cleaned.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armvm_opts_cleanup(struct armvm_opts *opts);
+
+
+/**
  * @brief Starts the arm virtual machine.
  *
  * If armvm points to an invalid memory address, than the behavior is undefined.

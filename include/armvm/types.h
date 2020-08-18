@@ -2,6 +2,8 @@
 #ifndef __ARMVM_TYPES_H__
 #define __ARMVM_TYPES_H__
 
+#include <stdint.h>
+
 /**
  * @brief Enumeration which holds information about the Instruction Set Architecture (ISA).
  */
@@ -18,7 +20,10 @@ enum armvm_ISA {
  * @brief This structure contains all options for the virtual machine.
  */
 struct armvm_opts {
-    enum armvm_ISA isa; /**< Instruction Set Architecture, which shall be loaded */
+    enum armvm_ISA isa;            /**< Instruction Set Architecture, which shall be loaded */
+    char *program_file;            /**< File containing the program to load */
+    uint64_t program_address;      /**< Address to which the program will be loaded. */
+    uint64_t init_program_counter; /**< Initial program counter (CP) value. */
 };
 
 

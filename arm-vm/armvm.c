@@ -51,7 +51,10 @@ int main(int argc, char **argv)
     }
 
     opts.isa = conf.isa;
-#warning "set all options!"
+    opts.program_file = conf.program;
+    conf.program = NULL;
+    opts.program_address = conf.program_address;
+    opts.init_program_counter = conf.init_program_counter;
 
     if (armvm_start(&armvm, &opts)) {
         fprintf(stderr, "ERROR: armvm_start() faild.\n");
