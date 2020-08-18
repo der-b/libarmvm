@@ -1,5 +1,6 @@
 /* @file */
-#ifndef __armvm_h__
+#ifndef __ARMVM_H__
+#define __ARMVM_H__
 
 #define ARMVM_RET_SUCCESS ( 0)
 

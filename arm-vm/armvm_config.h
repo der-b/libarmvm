@@ -1,4 +1,5 @@
 #ifndef __ARMVM_CONFIG_H__
+#define __ARMVM_CONFIG_H__
 
 /** @file */
 
