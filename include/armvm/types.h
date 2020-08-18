@@ -28,10 +28,45 @@ struct armvm_opts {
 
 
 /**
+ * @brief This struct is the interface to the instruction set architecture.
+ * This interface is used to control the execution of the virtual machine.
+ */
+struct armvm_ISA {
+    void *data; /**< Pointer to the data of the used ISA. */
+
+    /**
+     * @brief Executes the next instruction
+     *
+     * @return Returns 0 on success.
+     */
+    int (*step)(struct armvm_ISA isa);
+};
+
+
+/**
+ * @brief This struct is the interface to the memory of the microcontroller.
+ */
+struct armvm_memory {
+    void *data;  /**< Pointer to the data of the used memory model. */
+};
+
+
+/**
+ * @brief This struct is the interface to the peripherals of the microcontroller.
+ */
+struct armvm_peripherals {
+    void *data;  /**< Pointer to the data of the peripherals. */
+};
+
+
+/**
  * @brief This structure contains the current state of the virtual machine.
  */
 struct armvm {
-    struct armvm_opts opts; /**< Options used by libarmvm */
+    struct armvm_opts opts;          /**< Options used by libarmvm */
+    struct armvm_memory mem;         /**< Interface to the memory model */
+    struct armvm_peripherals periph; /**< Interface to the peripherals of the controller */
+    struct armvm_ISA isa;            /**< Interface to the instruction set architecture */
 };
 
 #endif
