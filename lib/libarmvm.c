@@ -3,6 +3,9 @@
 #include <armvm.h>
 #include <lib_version.h>
 #include <stdlib.h>
+#include <libarmvm_isa.h>
+#include <libarmvm_memory.h>
+#include <libarmvm_peripherals.h>
 
 const char *armvm_version()
 {
