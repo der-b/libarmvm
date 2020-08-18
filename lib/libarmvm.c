@@ -46,6 +46,10 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
         armvm_opts_init(&armvm->opts);
     }
 
+    printf("TODO: Set up registers.\n");
+    printf("TODO: Set up memory.\n");
+    printf("TODO: Set up peripherals.\n");
+
     if(armvm_opts_cleanup(&armvm->opts)) {
         goto err;
     }
