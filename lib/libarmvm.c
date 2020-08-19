@@ -3,6 +3,7 @@
 #include <armvm.h>
 #include <lib_version.h>
 #include <stdlib.h>
+#include <libarmvm.h>
 #include <libarmvm_isa.h>
 #include <libarmvm_memory.h>
 #include <libarmvm_peripherals.h>
@@ -50,20 +51,94 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
     }
 
     if (opts) {
-        memcpy(&armvm->opts, opts, sizeof(*opts));
+        if (_libarmvm_opts_copy(&armvm->opts, opts)) {
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
     } else {
         armvm_opts_init(&armvm->opts);
+    }
+
+    if (_libarmvm_opts_check(&armvm->opts)) {
+        ret = ARMVM_RET_INVALID_OPTS;
+        goto err_opts;
     }
 
     printf("TODO: Set up registers.\n");
     printf("TODO: Set up memory.\n");
     printf("TODO: Set up peripherals.\n");
 
+err_opts:
     if(armvm_opts_cleanup(&armvm->opts)) {
         goto err;
     }
-
-    return ARMVM_RET_SUCCESS;
 err:
+    return ret;
+}
+
+
+int _libarmvm_opts_check(const struct armvm_opts *opts)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    if (!opts->program_file) {
+        fprintf(stderr, "ERROR: You need to provide a program file (armvm_opts.program_file).\n");
+        ret = ARMVM_RET_INVALID_OPTS;
+    }
+
+    if (!opts->device_id) {
+        fprintf(stderr, "ERROR: You need to provide a device id (armvm_opts.device_id).\n");
+        ret = ARMVM_RET_INVALID_OPTS;
+    }
+
+    // TODO: We currently only support STM32F070CB, therefore this check is sufficient. This have to be addressed in the future
+#define DEVICE_ID "STM32F070CB"
+    if (0 != memcmp(DEVICE_ID, opts->device_id, sizeof(DEVICE_ID))) {
+        fprintf(stderr, "ERROR: Unsupported device (armvm_opts.device_id): %s\n", opts->device_id);
+        ret = ARMVM_RET_INVALID_OPTS;
+
+    }
+#undef DEVCVIC_ID
+    return ret;
+}
+
+
+int _libarmvm_opts_copy(struct armvm_opts *dest, const struct armvm_opts *src)
+{
+    int ret = ARMVM_RET_SUCCESS;
+
+    memset(dest, 0, sizeof(*dest));
+
+    if (src->program_file) {
+        size_t len = strlen(src->program_file) + 1;
+        dest->program_file = malloc(len * sizeof(char));
+        if (!dest->program_file) {
+            ret = ARMVM_RET_NO_MEM;
+            goto err;
+        }
+        strncpy(dest->program_file, src->program_file, len);
+    } else {
+        dest->program_file = NULL;
+    }
+
+    if (src->device_id) {
+        size_t len = strlen(src->device_id) + 1;
+        dest->device_id = malloc(len * sizeof(char));
+        if (!dest->device_id) {
+            ret = ARMVM_RET_NO_MEM;
+            goto err;
+        }
+        strncpy(dest->device_id, src->device_id, len);
+    } else {
+        dest->device_id = NULL;
+    }
+
+    dest->isa = src->isa;
+    dest->program_address = src->program_address;
+    dest->init_program_counter = src->init_program_counter;
+
+err:
+    if (ret != ARMVM_RET_SUCCESS) {
+        armvm_opts_cleanup(dest);
+    }
     return ret;
 }

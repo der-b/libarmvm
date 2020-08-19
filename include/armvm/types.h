@@ -20,11 +20,11 @@ enum armvm_ISA_e {
  * @brief This structure contains all options for the virtual machine.
  */
 struct armvm_opts {
-    enum armvm_ISA_e isa;          /**< Instruction Set Architecture, which shall be loaded */
     char *program_file;            /**< File containing the program to load */
+    char *device_id;               /**< Device ID encoded as string. */
+    enum armvm_ISA_e isa;          /**< Instruction Set Architecture, which shall be loaded */
     uint64_t program_address;      /**< Address to which the program will be loaded. */
     uint64_t init_program_counter; /**< Initial program counter (CP) value. */
-    char *device_id;               /**< Device ID encoded as string. */
 };
 
 
