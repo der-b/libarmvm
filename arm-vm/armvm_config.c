@@ -39,7 +39,7 @@ int armvm_config_init(struct armvm_config *config, int argc, char **argv)
     memset(config, 0, sizeof(*config));
     config->isa = ARMV6_M;
     config->program_address = 0x08000000;
-    config->init_program_counter = config->program_address;
+    config->init_program_counter = 0x0;
 
     while(1) {
         int option_index = 0;
