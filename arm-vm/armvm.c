@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <armvm_config.h>
 #include <armvm.h>
 #include <cli_version.h>
+
+#define DEVICE_ID "STM32F070CB"
 
 int main(int argc, char **argv)
 {
@@ -55,6 +58,16 @@ int main(int argc, char **argv)
     conf.program = NULL;
     opts.program_address = conf.program_address;
     opts.init_program_counter = conf.init_program_counter;
+
+    // we currently only suppart one device
+    opts.device_id = malloc(sizeof(DEVICE_ID));
+    if (!opts.device_id) {
+        fprintf(stderr, "ERROR: not enough memory.\n");
+        ret_val = 1;
+        goto err_opts;
+    }
+
+    memcpy(opts.device_id, DEVICE_ID, sizeof(DEVICE_ID));
 
     if (armvm_start(&armvm, &opts)) {
         fprintf(stderr, "ERROR: armvm_start() faild.\n");

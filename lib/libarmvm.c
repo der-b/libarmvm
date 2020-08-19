@@ -30,6 +30,12 @@ int armvm_opts_cleanup(struct armvm_opts *opts)
         free(opts->program_file);
         opts->program_file = NULL;
     }
+
+    if (opts->device_id) {
+        free(opts->device_id);
+        opts->device_id = NULL;
+    }
+
     return ARMVM_RET_SUCCESS;
 }
 
