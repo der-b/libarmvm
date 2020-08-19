@@ -10,6 +10,7 @@
 #define ARMVM_RET_INVALID_PARAM (-2)
 #define ARMVM_RET_INVALID_OPTS  (-3)
 #define ARMVM_RET_NO_MEM        (-4)
+#define ARMVM_RET_INVALID_ADDR  (-5)
 
 /**
  * @brief Returns the libarmvm version string.

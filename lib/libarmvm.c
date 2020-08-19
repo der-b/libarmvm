@@ -50,6 +50,8 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
         goto err;
     }
 
+    memset(armvm, 0, sizeof(*armvm));
+
     if (opts) {
         if (_libarmvm_opts_copy(&armvm->opts, opts)) {
             ret = ARMVM_RET_FAIL;
@@ -64,13 +66,22 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
         goto err_opts;
     }
 
-    printf("TODO: Set up registers.\n");
-    printf("TODO: Set up memory.\n");
+    if (libarmvm_memory_init(armvm)) {
+        ret = ARMVM_RET_FAIL;
+        goto err_opts;
+    }
+
+    printf("TODO: Set up isa.\n");
     printf("TODO: Set up peripherals.\n");
+
+err_memory:
+    if (libarmvm_memory_cleanup(armvm)) {
+        ret = ARMVM_RET_FAIL;
+    }
 
 err_opts:
     if(armvm_opts_cleanup(&armvm->opts)) {
-        goto err;
+        ret = ARMVM_RET_FAIL;
     }
 err:
     return ret;
@@ -90,14 +101,20 @@ int _libarmvm_opts_check(const struct armvm_opts *opts)
         ret = ARMVM_RET_INVALID_OPTS;
     }
 
-    // TODO: We currently only support STM32F070CB, therefore this check is sufficient. This have to be addressed in the future
+    // TODO: Currently, we only support STM32F070CB, therefore this check is sufficient. This have to be addressed in the future
 #define DEVICE_ID "STM32F070CB"
     if (0 != memcmp(DEVICE_ID, opts->device_id, sizeof(DEVICE_ID))) {
         fprintf(stderr, "ERROR: Unsupported device (armvm_opts.device_id): %s\n", opts->device_id);
         ret = ARMVM_RET_INVALID_OPTS;
 
     }
-#undef DEVCVIC_ID
+#undef DEVICE_ID
+
+    // TODO: Currently, we only support the Armv6-M ISA
+    if (ARMV6_M != opts->isa) {
+        fprintf(stderr, "ERROR: Unsupported isa (armvm_opts.isa): %s\n", armvm_utils_isa_to_string(opts->isa));
+        ret = ARMVM_RET_INVALID_OPTS;
+    }
     return ret;
 }
 

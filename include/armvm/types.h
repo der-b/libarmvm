@@ -49,6 +49,54 @@ struct armvm_ISA {
  */
 struct armvm_memory {
     void *data;  /**< Pointer to the data of the used memory model. */
+
+    /**
+     * @brief Read one byte from virtual machine memory.
+     *
+     * @param data Pointer to the data of the loaded memory model.
+     * @param src_addr Address to the memory location of the virtual machine to read from.
+     * @param dest Pointer to the destination memory location.
+     * @return ARMVM_RET_SUCCESS on success.
+     *         ARMVM_RET_INVALID_ADDR if src_addr point to an invalid memory location.
+     * @see data
+     */
+    int (*read_byte)(void *data, uint32_t src_addr, uint8_t *dest);
+
+    /**
+     * @brief Same as read_byte() but reads a halfword.
+     * @see read_byte
+     */
+    int (*read_halfword)(void *data, uint32_t src_addr, uint16_t *dest);
+
+    /**
+     * @brief Same as read_byte() but reads a word.
+     * @see read_byte
+     */
+    int (*read_word)(void *data, uint32_t src_addr, uint32_t *dest);
+
+    /**
+     * @brief Writes one byte to virtual machine memory.
+     *
+     * @param data Pointer to the data of the loaded memory model.
+     * @param dest_addr Address to the memory location of the virtual machine to write.
+     * @param dest Pointer to the source memory location.
+     * @return ARMVM_RET_SUCCESS on success.
+     *         ARMVM_RET_INVALID_ADDR if src_addr point to an invalid memory location.
+     * @see data
+     */
+    int (*write_byte)(void *data, uint32_t dest_addr, uint8_t *src);
+
+    /**
+     * @brief Same as write_byte() but writes a halfword.
+     * @see write_byte
+     */
+    int (*write_halfword)(void *data, uint32_t dest_addr, uint16_t *src);
+
+    /**
+     * @brief Same as write_byte() but writes a word.
+     * @see write_byte
+     */
+    int (*write_word)(void *data, uint32_t dest_addr, uint32_t *src);
 };
 
 
@@ -64,10 +112,10 @@ struct armvm_peripherals {
  * @brief This structure contains the current state of the virtual machine.
  */
 struct armvm {
-    struct armvm_opts opts;          /**< Options used by libarmvm */
-    struct armvm_memory mem;         /**< Interface to the memory model */
-    struct armvm_peripherals periph; /**< Interface to the peripherals of the controller */
-    struct armvm_ISA isa;            /**< Interface to the instruction set architecture */
+    struct armvm_opts opts;           /**< Options used by libarmvm */
+    struct armvm_memory *mem;         /**< Interface to the memory model */
+    struct armvm_peripherals *periph; /**< Interface to the peripherals of the controller */
+    struct armvm_ISA *isa;            /**< Interface to the instruction set architecture */
 };
 
 #endif
