@@ -2,6 +2,10 @@
 
 *libarmvm* is a software implementation of an Armv6-M processor.
 
+## Supported Devices
+
+Currently only the STM32F070CB microcontroller is supperted.
+
 ## Build
 
 ``` bash
