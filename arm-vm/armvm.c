@@ -59,13 +59,12 @@ int main(int argc, char **argv)
     if (armvm_start(&armvm, &opts)) {
         fprintf(stderr, "ERROR: armvm_start() faild.\n");
         ret_val = 1;
-        goto err_conf;
+        goto err_opts;
     }
 
-    if (armvm_config_cleanup(&conf)) {
-        fprintf(stderr, "ERROR: armvm_config_cleanup() faild.\n");
-        ret_val = 1;
-        goto err;
+err_opts:
+    if (armvm_opts_cleanup(&opts)) {
+        fprintf(stderr, "WARN: armvm_opts_cleanup() faild.\n");
     }
 
 err_conf:
