@@ -9,6 +9,13 @@ build/CMakeCache.txt: build
 	cd build && cmake -DCMAKE_BUILD_TYPE=Debug ..
 	make -C build --no-print-directory
 
+run: build/CMakeCache.txt
+	valgrind --leak-check=yes ./build/arm-vm -p ./example_programs/endless_loop1/main.bin
+
+run_gdb: build/CMakeCache.txt
+	gdb --ex=r --args  ./build/arm-vm -p ./example_programs/endless_loop1/main.bin
+
+
 libopencm3:
 	TARGETS=stm32/f0 make -C example_programs/libopencm3
 
