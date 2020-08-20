@@ -71,6 +71,12 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
         goto err_opts;
     }
 
+    if (libarmvm_memory_load_program(armvm, armvm->opts.program_address, armvm->opts.program_file)) {
+        fprintf(stderr, "ERROR: Could not load program: %s\n", armvm->opts.program_file);
+        ret = ARMVM_RET_FAIL;
+        goto err_memory;
+    }
+
     printf("TODO: Set up isa.\n");
     printf("TODO: Set up peripherals.\n");
 

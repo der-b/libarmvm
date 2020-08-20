@@ -72,4 +72,14 @@ int libarmvm_memory_init(struct armvm *armvm);
  */
 int libarmvm_memory_cleanup(struct armvm *armvm);
 
+
+/**
+ * @brief Loads a program from a file into the memory.
+ *
+ * @param dest_addr Destination addres to which the program shall be loaded.
+ * @param program Path to the program file.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int libarmvm_memory_load_program(struct armvm *armvm, uint32_t dest_addr, const char *program);
+
 #endif

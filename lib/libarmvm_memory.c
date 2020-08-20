@@ -1,7 +1,12 @@
 #include <libarmvm_memory.h>
+#include <assert.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
 
 /**************
  * TODO:
@@ -275,3 +280,52 @@ int libarmvm_memory_cleanup(struct armvm *armvm)
 
     return ARMVM_RET_SUCCESS;
 }
+
+
+int libarmvm_memory_load_program(struct armvm *armvm, uint32_t dest_addr, const char *program)
+{
+    int ret = ARMVM_RET_SUCCESS;
+
+    if (!program || !armvm) {
+        ret = ARMVM_RET_INVALID_PARAM;
+        goto err;
+    }
+
+    struct stat stats;
+    if (0 > stat(program, &stats)) {
+        fprintf(stderr, "ERROR: Could not get file statistics for '%s'\n", program);
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    int fd = open(program, O_RDONLY);
+    if (0 > fd) {
+        fprintf(stderr, "ERROR: Could not open file: %s\n", program);
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    uint8_t *file = mmap(0, stats.st_size, PROT_NONE | PROT_READ, MAP_PRIVATE, fd, 0);
+    if (MAP_FAILED == file) {
+        fprintf(stderr, "ERROR: mmap() failed for: %s\n", program);
+        ret = ARMVM_RET_FAIL;
+        goto err_fd;
+    }
+
+    assert(armvm->mem);
+    assert(armvm->mem->write_byte);
+    for (size_t i = 0; i < stats.st_size; ++i, ++dest_addr) {
+        ret = armvm->mem->write_byte(armvm->mem->data, dest_addr, &file[i]);
+        if (ret) {
+            goto err_mmap;
+        }
+    }
+
+err_mmap:
+    munmap(file, stats.st_size);
+err_fd:
+    close(fd);
+err:
+    return ret;
+}
+
