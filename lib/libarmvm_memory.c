@@ -52,6 +52,11 @@ int _read_byte(void *data, uint32_t src_addr, uint8_t *dest)
 
 int _read_halfword(void *data, uint32_t src_addr, uint16_t *dest)
 {
+    // if address is not half word aligned
+    if (src_addr % 2) {
+        return ARMVM_RET_ADDR_NOT_ALIGN;
+    }
+
     struct libarmvm_memory_area *area = _get_memory_area(data, src_addr);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;
@@ -72,6 +77,11 @@ int _read_halfword(void *data, uint32_t src_addr, uint16_t *dest)
 
 int _read_word(void *data, uint32_t src_addr, uint32_t *dest)
 {
+    // if address is not word aligned
+    if (src_addr % 4) {
+        return ARMVM_RET_ADDR_NOT_ALIGN;
+    }
+
     struct libarmvm_memory_area *area = _get_memory_area(data, src_addr);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;
@@ -112,6 +122,10 @@ int _write_byte(void *data, uint32_t dest_addr, uint8_t *src)
 
 int _write_halfword(void *data, uint32_t dest_addr, uint16_t *src)
 {
+    // if address is not halfword aligned
+    if (dest_addr % 2) {
+        return ARMVM_RET_ADDR_NOT_ALIGN;
+    }
     struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;
@@ -132,6 +146,11 @@ int _write_halfword(void *data, uint32_t dest_addr, uint16_t *src)
 
 int _write_word(void *data, uint32_t dest_addr, uint32_t *src)
 {
+    // if address is not word aligned
+    if (dest_addr % 4) {
+        return ARMVM_RET_ADDR_NOT_ALIGN;
+    }
+
     struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;

@@ -58,6 +58,7 @@ struct armvm_memory {
      * @param dest Pointer to the destination memory location.
      * @return ARMVM_RET_SUCCESS on success.
      *         ARMVM_RET_INVALID_ADDR if src_addr point to an invalid memory location.
+     *         ARMVM_RET_ADDR_NOT_ALIGN if src_addr is not aligned (only on halfword or word reads).
      * @see data
      */
     int (*read_byte)(void *data, uint32_t src_addr, uint8_t *dest);
@@ -79,9 +80,10 @@ struct armvm_memory {
      *
      * @param data Pointer to the data of the loaded memory model.
      * @param dest_addr Address to the memory location of the virtual machine to write.
-     * @param dest Pointer to the source memory location.
+     * @param src Pointer to the source memory location.
      * @return ARMVM_RET_SUCCESS on success.
-     *         ARMVM_RET_INVALID_ADDR if src_addr point to an invalid memory location.
+     *         ARMVM_RET_INVALID_ADDR if dest_addr point to an invalid memory location.
+     *         ARMVM_RET_ADDR_NOT_ALIGN if dest_addr is not aligned (only on halfword or word writes).
      * @see data
      */
     int (*write_byte)(void *data, uint32_t dest_addr, uint8_t *src);

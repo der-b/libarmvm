@@ -5,12 +5,13 @@
 #include <armvm/types.h>
 #include <armvm/utils.h>
 
-#define ARMVM_RET_SUCCESS       ( 0)
-#define ARMVM_RET_FAIL          (-1)
-#define ARMVM_RET_INVALID_PARAM (-2)
-#define ARMVM_RET_INVALID_OPTS  (-3)
-#define ARMVM_RET_NO_MEM        (-4)
-#define ARMVM_RET_INVALID_ADDR  (-5)
+#define ARMVM_RET_SUCCESS        ( 0)
+#define ARMVM_RET_FAIL           (-1)
+#define ARMVM_RET_INVALID_PARAM  (-2)
+#define ARMVM_RET_INVALID_OPTS   (-3)
+#define ARMVM_RET_NO_MEM         (-4)
+#define ARMVM_RET_INVALID_ADDR   (-5)
+#define ARMVM_RET_ADDR_NOT_ALIGN (-6)
 
 /**
  * @brief Returns the libarmvm version string.
