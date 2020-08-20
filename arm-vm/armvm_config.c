@@ -9,17 +9,19 @@
 const struct option long_options[] = {
     {"program",         required_argument, 0, 'p'},
     {"address",         required_argument, 0, 'a'},
+    {"steps",           required_argument, 0, 's'},
     {"isa",             required_argument, 0, 'i'},
     {"help",            no_argument,       0, 'h'},
     {"version",         no_argument,       0, 'v'},
     {0, 0, 0, 0}
 };
 
-const char short_options[] = "p:a:i:hv";
+const char short_options[] = "s:p:a:i:hv";
 
 const char usage_message[] =
 "-p, --program=FILE          Specifies the program, which shall be loaded by the vm.\n"
 "-a, --address=ADDR          Memory location where the program shall be stored.\n"
+"-s, --steps=AMOUNT          Sets how many steps will be executed. If not specified, it will be no limit.\n"
 "-i, --isa=ISA               Sets the instruction set architecture.\n"
 "                            Valid values are: Armv6-M, Armv7-M, Armv8-M\n"
 "-h, --help                  Display this help message and exit.\n"
@@ -35,6 +37,7 @@ int armvm_config_init(struct armvm_config *config, int argc, char **argv)
     memset(config, 0, sizeof(*config));
     config->isa = ARMV6_M;
     config->program_address = 0x08000000;
+    config->steps = 0;
 
     while(1) {
         int option_index = 0;
@@ -80,6 +83,20 @@ int armvm_config_init(struct armvm_config *config, int argc, char **argv)
                         return ARMVM_CONFIG_FAIL;
                     }
                     config->program_address = addr;
+                }
+                break;
+            case 's':
+                {
+                    // we assume that long long int is 64bit value
+                    assert(sizeof(unsigned long long int) == 8);
+                    assert(sizeof(uint64_t) == 8);
+                    errno = 0;
+                    uint64_t steps = strtoull(optarg, NULL, 16);
+                    if (errno) {
+                        fprintf(stderr, "ERROR: Argument to option -s/--steps is invalid.\n", argv[option_index]);
+                        return ARMVM_CONFIG_FAIL;
+                    }
+                    config->steps = steps;
                 }
                 break;
             case '?':

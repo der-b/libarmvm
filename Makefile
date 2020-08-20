@@ -10,10 +10,10 @@ build/CMakeCache.txt: build
 	make -C build --no-print-directory
 
 run: build/CMakeCache.txt
-	valgrind --leak-check=yes ./build/arm-vm -p ./example_programs/endless_loop1/main.bin
+	valgrind --leak-check=yes ./build/arm-vm -s 100 -p ./example_programs/endless_loop1/main.bin
 
 run_gdb: build/CMakeCache.txt
-	gdb --ex=r --args  ./build/arm-vm -p ./example_programs/endless_loop1/main.bin
+	gdb --ex=r --args  ./build/arm-vm -s 100 -p ./example_programs/endless_loop1/main.bin
 
 
 libopencm3:

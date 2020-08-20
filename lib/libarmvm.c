@@ -7,7 +7,7 @@
 #include <libarmvm_memory.h>
 #include <libarmvm_registers.h>
 #include <libarmvm_peripherals.h>
-#include <libarmvm_isa.h>
+#include <libarmvm_ci.h>
 
 const char *armvm_version()
 {
@@ -20,6 +20,7 @@ int armvm_opts_init(struct armvm_opts *opts)
     memset(opts, 0, sizeof(*opts));
     opts->isa = ARMV6_M;
     opts->program_address = 0x08000000;
+    opts->steps = 0;
     
     return ARMVM_RET_SUCCESS;
 }
@@ -82,8 +83,38 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
         goto err_memory;
     }
 
+    if (libarmvm_ci_init(armvm)) {
+        ret = ARMVM_RET_FAIL;
+        goto err_registers;
+    }
+
+    if(armvm->ci->reset(armvm->ci->data)) {
+        ret = ARMVM_RET_FAIL;
+        goto err_ci;
+    }
+
+    if (armvm->opts.steps) {
+        for (uint64_t i = 0; i < armvm->opts.steps; ++i) {
+            if (armvm->ci->step(armvm->ci->data)) {
+                ret = ARMVM_RET_FAIL;
+                goto err_ci;
+            }
+        }
+    } else {
+        while (1) {
+            if (armvm->ci->step(armvm->ci->data)) {
+                ret = ARMVM_RET_FAIL;
+                goto err_ci;
+            }
+        }
+    }
+
     printf("TODO: Set up peripherals.\n");
 
+err_ci:
+    if (libarmvm_ci_cleanup(armvm)) {
+        ret = ARMVM_RET_FAIL;
+    }
 err_registers:
     if (libarmvm_registers_cleanup(armvm)) {
         ret = ARMVM_RET_FAIL;
@@ -165,6 +196,7 @@ int _libarmvm_opts_copy(struct armvm_opts *dest, const struct armvm_opts *src)
 
     dest->isa = src->isa;
     dest->program_address = src->program_address;
+    dest->steps = src->steps;
 
 err:
     if (ret != ARMVM_RET_SUCCESS) {

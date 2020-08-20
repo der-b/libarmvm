@@ -24,22 +24,39 @@ struct armvm_opts {
     char *device_id;               /**< Device ID encoded as string. */
     enum armvm_ISA_e isa;          /**< Instruction Set Architecture, which shall be loaded */
     uint64_t program_address;      /**< Address to which the program will be loaded. */
+    uint64_t steps;                /**< The amount of steps, which will be executed. If set to 0, the vm will run indefinitely. */
 };
 
 
 /**
- * @brief This struct is the interface to the instruction set architecture.
- * This interface is used to control the execution of the virtual machine.
+ * @brief This struct is the control interface to the microcontroller.
+ * This interface is used to control the virtual machine
  */
-struct armvm_ISA {
-    void *data; /**< Pointer to the data of the used ISA. */
+struct armvm_ci {
+    void *data; /**< Pointer to the data of the used for the controlling. */
 
     /**
-     * @brief Executes the next instruction
+     * @brief Resets the microcontroller.
+     * Have to be called once before the first call to step.
      *
-     * @return Returns 0 on success.
+     * @param data Pointer to the data of the loaded controller.
+     * @return Returns ARMVM_RET_SUCCESS on success.
      */
-    int (*step)(struct armvm_ISA isa);
+    int (*reset)(void *data);
+
+    /**
+     * @brief Executes one step.
+     * One step normally means on tact of the virtual machine. Since the frequency of
+     * the system clock can be changed, the amount of passed simulation time is not
+     * fixed.
+     * 
+     * reset() have to be called once before the first call to this function. If this 
+     * is not done, the behavior of this function is undefined.
+     *
+     * @param data Pointer to the data of the loaded controller.
+     * @return Returns ARMVM_RET_SUCCESS on success.
+     */
+    int (*step)(void *data);
 };
 
 
@@ -163,7 +180,7 @@ struct armvm {
     struct armvm_memory *mem;         /**< Interface to the memory model */
     struct armvm_registers *regs;     /**< Interface to the registers */
     struct armvm_peripherals *periph; /**< Interface to the peripherals of the controller */
-    struct armvm_ISA *isa;            /**< Interface to the instruction set architecture */
+    struct armvm_ci *ci;              /**< Control interface for the virtual machine */
 };
 
 #endif

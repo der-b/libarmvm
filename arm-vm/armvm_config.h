@@ -20,6 +20,7 @@ struct armvm_config {
     enum armvm_ISA_e isa;
     char *program;
     uint64_t program_address;
+    uint64_t steps;
 };
 
 /**
