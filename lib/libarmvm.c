@@ -4,9 +4,10 @@
 #include <lib_version.h>
 #include <stdlib.h>
 #include <libarmvm.h>
-#include <libarmvm_isa.h>
 #include <libarmvm_memory.h>
+#include <libarmvm_registers.h>
 #include <libarmvm_peripherals.h>
+#include <libarmvm_isa.h>
 
 const char *armvm_version()
 {
@@ -77,9 +78,17 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
         goto err_memory;
     }
 
-    printf("TODO: Set up isa.\n");
+    if (libarmvm_registers_init(armvm)) {
+        ret = ARMVM_RET_FAIL;
+        goto err_memory;
+    }
+
     printf("TODO: Set up peripherals.\n");
 
+err_registers:
+    if (libarmvm_registers_cleanup(armvm)) {
+        ret = ARMVM_RET_FAIL;
+    }
 err_memory:
     if (libarmvm_memory_cleanup(armvm)) {
         ret = ARMVM_RET_FAIL;

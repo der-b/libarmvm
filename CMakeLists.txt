@@ -40,9 +40,10 @@ target_include_directories(armvm-utils INTERFACE "${PROJECT_SOURCE_DIR}/include"
 
 add_library(armvm SHARED
     lib/libarmvm.c
-    lib/libarmvm_isa.c
     lib/libarmvm_memory.c
+    lib/libarmvm_registers.c
     lib/libarmvm_peripherals.c
+    lib/libarmvm_isa.c
     ${PROJECT_BINARY_DIR}/lib_version.c)
 target_include_directories(armvm INTERFACE "${PROJECT_SOURCE_DIR}/include"
                                  PRIVATE "${PROJECT_BINARY_DIR}"

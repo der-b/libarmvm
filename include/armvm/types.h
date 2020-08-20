@@ -103,6 +103,52 @@ struct armvm_memory {
 
 
 /**
+ * @brief This struct is the interface to the register set of the microcontroller.
+ */
+struct armvm_registers {
+    void *data;  /**< Pointer to the data of the register set. */
+
+    /**
+     * @brief Read a general purpose register with the id reg_id.
+     * 
+     * @param data Pointer to the data of the loaded register model.
+     * @param reg_id Register to read.
+     * @param dest Pointer to location, where the register value shall be stored.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* read_gpr)(void *data, uint8_t reg_id, uint32_t *dest);
+
+    /**
+     * @brief Writes to a general purpose register with the id reg_id.
+     * 
+     * @param data Pointer to the data of the loaded register model.
+     * @param reg_id Register to write.
+     * @param dest Pointer to a value to which shall be stored in the gpr. 
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* write_gpr)(void *data, uint8_t reg_id, uint32_t *src);
+
+    /**
+     * @brief Read Program Status Register.
+     * 
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to location, where the register value shall be stored.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* read_psr)(void *data, uint32_t *dest);
+
+    /**
+     * @brief Writes to Program Status Register.
+     * 
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to a value to which shall be stored in the PSR. 
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* write_psr)(void *data, uint32_t *src);
+};
+
+
+/**
  * @brief This struct is the interface to the peripherals of the microcontroller.
  */
 struct armvm_peripherals {
@@ -116,6 +162,7 @@ struct armvm_peripherals {
 struct armvm {
     struct armvm_opts opts;           /**< Options used by libarmvm */
     struct armvm_memory *mem;         /**< Interface to the memory model */
+    struct armvm_registers *regs;     /**< Interface to the registers */
     struct armvm_peripherals *periph; /**< Interface to the peripherals of the controller */
     struct armvm_ISA *isa;            /**< Interface to the instruction set architecture */
 };
