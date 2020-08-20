@@ -57,7 +57,6 @@ int main(int argc, char **argv)
     opts.program_file = conf.program;
     conf.program = NULL;
     opts.program_address = conf.program_address;
-    opts.init_program_counter = conf.init_program_counter;
 
     // we currently only suppart one device
     opts.device_id = malloc(sizeof(DEVICE_ID));

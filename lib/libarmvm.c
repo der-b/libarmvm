@@ -20,7 +20,6 @@ int armvm_opts_init(struct armvm_opts *opts)
     memset(opts, 0, sizeof(*opts));
     opts->isa = ARMV6_M;
     opts->program_address = 0x08000000;
-    opts->init_program_counter = 0x0;
     
     return ARMVM_RET_SUCCESS;
 }
@@ -166,7 +165,6 @@ int _libarmvm_opts_copy(struct armvm_opts *dest, const struct armvm_opts *src)
 
     dest->isa = src->isa;
     dest->program_address = src->program_address;
-    dest->init_program_counter = src->init_program_counter;
 
 err:
     if (ret != ARMVM_RET_SUCCESS) {

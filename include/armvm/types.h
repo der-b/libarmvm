@@ -24,7 +24,6 @@ struct armvm_opts {
     char *device_id;               /**< Device ID encoded as string. */
     enum armvm_ISA_e isa;          /**< Instruction Set Architecture, which shall be loaded */
     uint64_t program_address;      /**< Address to which the program will be loaded. */
-    uint64_t init_program_counter; /**< Initial program counter (CP) value. */
 };
 
 
