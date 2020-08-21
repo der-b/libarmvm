@@ -193,6 +193,26 @@ int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruct
             }
             fprintf(stderr, "\n");
         }
+    } else {
+        if (instruction->is32Bit) {
+            printf("Instruction: 32Bit, 0x%08x, 0b", instruction->i._32bit);
+            for (size_t i = 0; i < 32; ++i) {
+                printf("%d", 0x1 & (instruction->i._16bit >> (31-i)));
+                if (0 == (i+1) % 4) {
+                    printf(" ");
+                }
+            }
+            printf("\n");
+        } else {
+            printf("Instruction: 16Bit, 0x%04x, 0b", instruction->i._16bit);
+            for (size_t i = 0; i < 16; ++i) {
+                printf("%d", 0x1 & (instruction->i._16bit >> (15-i)));
+                if (0 == (i+1) % 4) {
+                    printf(" ");
+                }
+            }
+            printf("\n");
+        }
     }
 
     return ret;
