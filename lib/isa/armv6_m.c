@@ -146,10 +146,89 @@ err:
 }
 
 
+int _execute_32bit_instruction(struct armvm *armvm, const struct armv6m_instruction *instruction) {
+    fprintf(stderr, "ERROR: %s(): Not Yet Implemented!\n", __func__);
+    return ARMVM_RET_FAIL;
+}
+
+
+int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruction *instruction) {
+    int ret = ARMVM_RET_FAIL;
+
+    if (instruction->i._16bit >> 12 == 0b1011) {
+        ret = armv6m_ins_PUSH(armvm, instruction);
+    }
+    return ret;
+}
+
+
 int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruction *instruction)
 {
-    fprintf(stderr, "%s(): Not Yet Implemented.\n", __func__);
-    return ARMVM_RET_FAIL;
+    int ret = ARMVM_RET_FAIL;
+    if (!instruction->is32Bit) {
+        ret = _execute_16bit_instruction(armvm, instruction);
+    } else {
+        ret = _execute_32bit_instruction(armvm, instruction);
+    }
+
+    if (ARMVM_RET_SUCCESS != ret) {
+        if (instruction->is32Bit) {
+            fprintf(stderr, "ERROR: Instruction: 32Bit, 0x%08x, 0b", instruction->i._32bit);
+            for (size_t i = 0; i < 32; ++i) {
+                fprintf(stderr, "%d", 0x1 & (instruction->i._16bit >> (31-i)));
+                if (0 == (i+1) % 4) {
+                    fprintf(stderr, " ");
+                }
+            }
+            fprintf(stderr, "\n");
+        } else {
+            fprintf(stderr, "ERROR: Instruction: 16Bit, 0x%04x, 0b", instruction->i._16bit);
+            for (size_t i = 0; i < 16; ++i) {
+                fprintf(stderr, "%d", 0x1 & (instruction->i._16bit >> (15-i)));
+                if (0 == (i+1) % 4) {
+                    fprintf(stderr, " ");
+                }
+            }
+            fprintf(stderr, "\n");
+        }
+    }
+
+    return ret;
+}
+
+
+int armv6m_update_pc(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    assert(armvm);
+    assert(armvm->regs);
+    assert(armvm->regs->read_gpr);
+    assert(armvm->regs->write_gpr);
+    assert(armvm->regs->data);
+    int ret = ARMVM_RET_SUCCESS;
+
+    uint32_t pc;
+
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) {
+        fprintf(stderr, "ERROR: Could not read PC register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (instruction->is32Bit) {
+        pc += 4;
+    } else {
+        pc += 2;
+    }
+
+
+    if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) {
+        fprintf(stderr, "ERROR: Could not write PC register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
 }
 
 
@@ -220,14 +299,91 @@ int armv6m_BranchTo(struct armvm *armvm, uint32_t address)
 {
     assert(armvm);
     assert(armvm->regs);
+    assert(armvm->regs->write_gpr);
     assert(armvm->regs->data);
 
     if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_PC, &address)) {
-        fprintf(stderr, "ERROR: Could not write PSR register.\n");
+        fprintf(stderr, "ERROR: Could not write GPR register.\n");
         goto err;
     }
 
     return ARMVM_RET_SUCCESS;
 err:
     return ARMVM_RET_FAIL;
+}
+
+
+uint8_t armv6m_BitCount(uint32_t val)
+{
+    uint8_t sum = 0;
+    for(size_t i = 0; i < 32; ++i) {
+        if ((0x1 << i) & val) {
+            sum++;
+        }
+    }
+    return sum;
+}
+
+
+int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    assert(armvm);
+    assert(armvm->regs);
+    assert(armvm->regs->read_gpr);
+    assert(armvm->regs->write_gpr);
+    assert(armvm->regs->data);
+    assert(armvm->mem);
+    assert(armvm->mem->data);
+    assert(armvm->mem->write_word);
+
+    int ret = ARMVM_RET_SUCCESS;
+    uint16_t registers = ((0x1 << 8) & instruction->i._16bit) << 6;
+    registers = registers | (0xff & instruction->i._16bit);
+
+    if (!registers) {
+        ret = ARMVM_RET_UNPREDICTABLE;
+        goto err;
+    }
+
+    uint32_t sp;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_SP, &sp)) {
+        fprintf(stderr, "ERROR: Could not read SP register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    uint8_t setBit = armv6m_BitCount(registers);
+    uint32_t address = sp - 4 * setBit;
+
+    if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_SP, &address)) {
+        fprintf(stderr, "ERROR: Could not write SP register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+    
+    for (size_t i = 0; i <= 14; ++i) {
+        if ((0x1 << i) & registers) {
+            uint32_t value;
+            if (armvm->regs->read_gpr(armvm->regs->data, i, &value)) {
+                fprintf(stderr, "ERROR: Could not read gpr register.\n");
+                ret = ARMVM_RET_FAIL;
+                goto err;
+            }
+
+            if (armvm->mem->write_word(armvm->mem->data, address, &value)) {
+                fprintf(stderr, "ERROR: COuld not write to memory.\n");
+                ret = ARMVM_RET_FAIL;
+                goto err;
+            }
+            address += 4;
+        }
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
 }

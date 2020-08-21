@@ -90,6 +90,15 @@ int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruct
 
 
 /**
+ * @brief Calculates and updates the new Program Counter based on the instruction length.
+ *
+ * @param instruction Pointer to the current instruction.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_update_pc(struct armvm *armvm, const struct armv6m_instruction *instruction);
+
+
+/**
  * @brief Interworking branch.
  * See TakeReset() in ARMv6-M Architecture Reference Manual
  *
@@ -124,5 +133,15 @@ int armv6m_set_EPSR_T(struct armvm *armvm, uint32_t epsr_t);
  * @return ARMVM_RET_SUCCESS on success.
  */
 int armv6m_BranchTo(struct armvm *armvm, uint32_t address);
+
+/**
+ * @brief Counts the set bits in val.
+ * See BitCount() in ARMv6-M Architecture Reference Manual
+ *
+ * @return Number of set bits.
+ */
+uint8_t armv6m_BitCount(uint32_t val);
+
+int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 #endif

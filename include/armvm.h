@@ -13,6 +13,7 @@
 #define ARMVM_RET_INVALID_ADDR   (-5)
 #define ARMVM_RET_ADDR_NOT_ALIGN (-6)
 #define ARMVM_RET_INVALID_REG    (-7)
+#define ARMVM_RET_UNPREDICTABLE  (-8)
 
 /**
  * @brief Returns the libarmvm version string.
