@@ -69,6 +69,7 @@ int armv6m_reset(struct armvm *armvm)
     // TODO: Reset all System Control Space registers.
     // TODO: Deactivate all exceptions
     // TODO: Clear event register (see WFE isntruction)
+
     // Get address of reset routine (vectortable + 4)
     uint32_t start;
     if (armvm->mem->read_word(armvm->mem->data, armv6m->vectortable + 4, &start)) {
@@ -83,6 +84,71 @@ int armv6m_reset(struct armvm *armvm)
 
     return ARMVM_RET_SUCCESS;
 err:
+    return ARMVM_RET_FAIL;
+}
+
+
+int armv6m_load_instruction(struct armvm *armvm, uint32_t addr, struct armv6m_instruction *instruction)
+{
+    int ret;
+    assert(armvm);
+    assert(armvm->mem);
+    assert(armvm->mem->read_halfword);
+    assert(armvm->mem->data);
+
+    uint16_t ins;
+    ret = armvm->mem->read_halfword(armvm->mem->data, addr, &ins);
+    if (ret) {
+        fprintf(stderr, "ERROR: Could not read instruction at addr 0x%08x. Return value from read_halfword %d\n", addr, ret);
+        goto err;
+    }
+    
+    uint16_t firstBits = ins >> 11;
+    instruction->is32Bit =    0b11101 == firstBits 
+                           || 0b11110 == firstBits
+                           || 0b11111 == firstBits;
+        
+    if (!instruction->is32Bit) {
+        instruction->i._16bit = ins;
+    } else {
+        uint16_t ins2;
+        ret = armvm->mem->read_halfword(armvm->mem->data, addr + 2, &ins2);
+        if (ret) {
+            fprintf(stderr, "ERROR: Could not read second part of 32bit instruction at addr 0x%08x. Return value from read_halfword %d\n", addr + 2, ret);
+            goto err;
+        }
+        
+        instruction->i._32bit = (((uint32_t)ins) << 16) | ins2;
+
+    }
+
+    return ARMVM_RET_SUCCESS;
+err:
+    return ARMVM_RET_FAIL;
+}
+
+
+int armv6m_load_next_instruction(struct armvm *armvm, struct armv6m_instruction *instruction)
+{
+    assert(armvm);
+    assert(armvm->regs);
+    assert(armvm->regs->data);
+
+    uint32_t address;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &address)) {
+        fprintf(stderr, "ERROR: Could not write PSR register.\n");
+        goto err;
+    }
+
+    return armv6m_load_instruction(armvm, address, instruction);
+err:
+    return ARMVM_RET_FAIL;
+}
+
+
+int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    fprintf(stderr, "%s(): Not Yet Implemented.\n", __func__);
     return ARMVM_RET_FAIL;
 }
 

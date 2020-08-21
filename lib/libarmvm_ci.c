@@ -14,8 +14,22 @@ int _reset(struct armvm *armvm)
 
 int _step(struct armvm *armvm)
 {
-#warning "Not Yet Implemented";
-    return ARMVM_RET_SUCCESS;
+    int ret = ARMVM_RET_SUCCESS;
+    struct armv6m_instruction instruction;
+
+    // TODO: Implement Pipeline
+    ret = armv6m_load_next_instruction(armvm, &instruction);
+    if (ret) {
+        goto err;
+    }
+
+    ret = armv6m_execute_instruction(armvm, &instruction);
+    if (ret) {
+        goto err;
+    }
+
+err:
+    return ret;
 }
 
 

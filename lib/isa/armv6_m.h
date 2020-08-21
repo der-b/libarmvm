@@ -19,6 +19,18 @@ enum armv6m_execution_mode {
 
 
 /**
+ * @brief Representation of one instruction.
+ */
+struct armv6m_instruction {
+    uint8_t is32Bit;
+    union {
+        uint32_t _32bit;
+        uint16_t _16bit;
+    } i;
+};
+
+
+/**
  * @brief Execution state of the microcontroller.
  */
 struct armv6m {
@@ -48,6 +60,33 @@ int armv6m_cleanup(struct armv6m *armv6m);
  * @return ARMVM_RET_SUCCESS on success.
  */
 int armv6m_reset(struct armvm *armvm);
+
+
+/**
+ * @brief Loads the instruction from address.
+ *
+ * @param instruction Pointer to the location, where the instruction shall be stored.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_load_instruction(struct armvm *armvm, uint32_t addr, struct armv6m_instruction *instruction);
+
+
+/**
+ * @brief Loads the next instruction from the location the PC is pointing to.
+ *
+ * @param instruction Pointer to the location, where the instruction shall be stored.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_load_next_instruction(struct armvm *armvm, struct armv6m_instruction *instruction);
+
+
+/**
+ * @brief Executes one instruction.
+ *
+ * @param instruction Pointer to the instruction, which shall be executed.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 
 /**
