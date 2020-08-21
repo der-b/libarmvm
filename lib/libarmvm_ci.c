@@ -2,18 +2,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
+#include <isa/armv6_m.h>
 
 
-int _reset(void *data)
+int _reset(struct armvm *armvm)
 {
-    printf("%s: Not Yet Implemented\n", __func__);
-    return ARMVM_RET_SUCCESS;
+    return armv6m_reset(armvm);
 }
 
 
-int _step(void *data)
+int _step(struct armvm *armvm)
 {
-    printf("%s: Not Yet Implemented\n", __func__);
+#warning "Not Yet Implemented";
     return ARMVM_RET_SUCCESS;
 }
 
@@ -50,6 +51,20 @@ int libarmvm_ci_init(struct armvm *armvm)
         goto err;
     }
     struct libarmvm_ci *ci = armvm->ci->data;
+    ci->isa = ARMV6_M;
+
+    ci->data = calloc(1, sizeof(struct armv6m));
+    if (!ci->data) {
+        fprintf(stderr, "ERROR: Not enough memory.\n");
+        ret = ARMVM_RET_NO_MEM;
+        goto err;
+    }
+
+    if (armv6m_init(ci->data)) {
+        fprintf(stderr, "ERROR: Not enough memory.\n");
+        ret = ARMVM_RET_NO_MEM;
+        goto err;
+    }
     armvm->ci->reset = _reset;
     armvm->ci->step = _step;
 
@@ -64,6 +79,12 @@ int libarmvm_ci_cleanup(struct armvm *armvm)
 {
     if (armvm->ci) {
         if (armvm->ci->data) {
+            struct libarmvm_ci *ci = armvm->ci->data;
+            if (ci->data) {
+                armv6m_cleanup(ci->data);
+                free(ci->data);
+                ci->data = NULL;
+            }
             free(armvm->ci->data);
             armvm->ci->data = NULL;
         }

@@ -18,7 +18,7 @@ int _read_gpr(void *data, uint8_t reg_id, uint32_t *dest)
 }
 
 
-int _write_gpr(void *data, uint8_t reg_id, uint32_t *src)
+int _write_gpr(void *data, uint8_t reg_id, const uint32_t *src)
 {
     if(LIBARMVM_GPR_SIZE <= reg_id) {
         return ARMVM_RET_INVALID_REG;
@@ -40,7 +40,7 @@ int _read_psr(void *data, uint32_t *dest)
 }
 
 
-int _write_psr(void *data, uint32_t *src)
+int _write_psr(void *data, const uint32_t *src)
 {
     struct libarmvm_registers *regs = data;
     regs->psr = *src;

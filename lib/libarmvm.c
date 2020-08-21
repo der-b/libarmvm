@@ -88,21 +88,21 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
         goto err_registers;
     }
 
-    if(armvm->ci->reset(armvm->ci->data)) {
+    if(armvm->ci->reset(armvm)) {
         ret = ARMVM_RET_FAIL;
         goto err_ci;
     }
 
     if (armvm->opts.steps) {
         for (uint64_t i = 0; i < armvm->opts.steps; ++i) {
-            if (armvm->ci->step(armvm->ci->data)) {
+            if (armvm->ci->step(armvm)) {
                 ret = ARMVM_RET_FAIL;
                 goto err_ci;
             }
         }
     } else {
         while (1) {
-            if (armvm->ci->step(armvm->ci->data)) {
+            if (armvm->ci->step(armvm)) {
                 ret = ARMVM_RET_FAIL;
                 goto err_ci;
             }

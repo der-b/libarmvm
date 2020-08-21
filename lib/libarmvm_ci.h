@@ -5,8 +5,10 @@
 #include <armvm.h>
 
 struct libarmvm_ci {
-    uint8_t dummy;
+    enum armvm_ISA_e isa;
+    void *data;
 };
+
 
 /**
  * @brief Initialize the control interface of the virtual machine.

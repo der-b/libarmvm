@@ -105,7 +105,7 @@ int _read_word(void *data, uint32_t src_addr, uint32_t *dest)
 }
 
 
-int _write_byte(void *data, uint32_t dest_addr, uint8_t *src)
+int _write_byte(void *data, uint32_t dest_addr, const uint8_t *src)
 {
     struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr);
     if (!area) {
@@ -125,7 +125,7 @@ int _write_byte(void *data, uint32_t dest_addr, uint8_t *src)
 }
 
 
-int _write_halfword(void *data, uint32_t dest_addr, uint16_t *src)
+int _write_halfword(void *data, uint32_t dest_addr, const uint16_t *src)
 {
     // if address is not halfword aligned
     if (dest_addr % 2) {
@@ -149,7 +149,7 @@ int _write_halfword(void *data, uint32_t dest_addr, uint16_t *src)
 }
 
 
-int _write_word(void *data, uint32_t dest_addr, uint32_t *src)
+int _write_word(void *data, uint32_t dest_addr, const uint32_t *src)
 {
     // if address is not word aligned
     if (dest_addr % 4) {

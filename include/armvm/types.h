@@ -4,6 +4,8 @@
 
 #include <stdint.h>
 
+struct armvm;
+
 /**
  * @brief Enumeration which holds information about the Instruction Set Architecture (ISA).
  */
@@ -39,10 +41,10 @@ struct armvm_ci {
      * @brief Resets the microcontroller.
      * Have to be called once before the first call to step.
      *
-     * @param data Pointer to the data of the loaded controller.
+     * @param armvm Pointer to the data of the virtual machine.
      * @return Returns ARMVM_RET_SUCCESS on success.
      */
-    int (*reset)(void *data);
+    int (*reset)(struct armvm *armvm);
 
     /**
      * @brief Executes one step.
@@ -53,10 +55,10 @@ struct armvm_ci {
      * reset() have to be called once before the first call to this function. If this 
      * is not done, the behavior of this function is undefined.
      *
-     * @param data Pointer to the data of the loaded controller.
+     * @param armvm Pointer to the data of the virtual machine.
      * @return Returns ARMVM_RET_SUCCESS on success.
      */
-    int (*step)(void *data);
+    int (*step)(struct armvm *armvm);
 };
 
 
@@ -102,19 +104,19 @@ struct armvm_memory {
      *         ARMVM_RET_ADDR_NOT_ALIGN if dest_addr is not aligned (only on halfword or word writes).
      * @see data
      */
-    int (*write_byte)(void *data, uint32_t dest_addr, uint8_t *src);
+    int (*write_byte)(void *data, uint32_t dest_addr, const uint8_t *src);
 
     /**
      * @brief Same as write_byte() but writes a halfword.
      * @see write_byte
      */
-    int (*write_halfword)(void *data, uint32_t dest_addr, uint16_t *src);
+    int (*write_halfword)(void *data, uint32_t dest_addr, const uint16_t *src);
 
     /**
      * @brief Same as write_byte() but writes a word.
      * @see write_byte
      */
-    int (*write_word)(void *data, uint32_t dest_addr, uint32_t *src);
+    int (*write_word)(void *data, uint32_t dest_addr, const uint32_t *src);
 };
 
 
@@ -142,7 +144,7 @@ struct armvm_registers {
      * @param dest Pointer to a value to which shall be stored in the gpr. 
      * @return ARMVM_RET_SUCCESS on success.
      */
-    int (* write_gpr)(void *data, uint8_t reg_id, uint32_t *src);
+    int (* write_gpr)(void *data, uint8_t reg_id, const uint32_t *src);
 
     /**
      * @brief Read Program Status Register.
@@ -160,7 +162,7 @@ struct armvm_registers {
      * @param dest Pointer to a value to which shall be stored in the PSR. 
      * @return ARMVM_RET_SUCCESS on success.
      */
-    int (* write_psr)(void *data, uint32_t *src);
+    int (* write_psr)(void *data, const uint32_t *src);
 };
 
 

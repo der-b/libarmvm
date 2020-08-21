@@ -44,6 +44,7 @@ add_library(armvm SHARED
     lib/libarmvm_registers.c
     lib/libarmvm_peripherals.c
     lib/libarmvm_ci.c
+    lib/isa/armv6_m.c
     ${PROJECT_BINARY_DIR}/lib_version.c)
 target_include_directories(armvm INTERFACE "${PROJECT_SOURCE_DIR}/include"
                                  PRIVATE "${PROJECT_BINARY_DIR}"
