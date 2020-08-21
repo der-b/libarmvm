@@ -157,6 +157,8 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
 
     if (instruction->i._16bit >> 12 == 0b1011) {
         ret = armv6m_ins_PUSH(armvm, instruction);
+    } else if (instruction->i._16bit >> 11 == 0b01001) {
+        ret = armv6m_ins_LDR_literal(armvm, instruction);
     }
     return ret;
 }
@@ -325,6 +327,12 @@ uint8_t armv6m_BitCount(uint32_t val)
 }
 
 
+uint32_t armv6m_Align(uint32_t x, uint32_t y)
+{
+    return y * (x / y);
+}
+
+
 int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction)
 {
     assert(armvm);
@@ -377,6 +385,59 @@ int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instru
             }
             address += 4;
         }
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    assert(armvm);
+    assert(armvm->regs);
+    assert(armvm->regs->read_gpr);
+    assert(armvm->regs->write_gpr);
+    assert(armvm->regs->data);
+    assert(armvm->mem);
+    assert(armvm->mem->data);
+    assert(armvm->mem->read_word);
+    int ret = ARMVM_RET_SUCCESS;
+
+    uint8_t t = (instruction->i._16bit >> 8) & 0b111;
+    const uint8_t add = 1;
+    uint32_t imm32 = (instruction->i._16bit & 0xff) << 2;
+
+    uint32_t pc;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) {
+        fprintf(stderr, "ERROR: Could not read PC register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    uint32_t base = armv6m_Align(pc,4);
+
+    uint32_t address;
+    if (add) {
+        address = base + imm32;
+    } else {
+        address = base - imm32;
+    }
+
+    uint32_t memvalue;
+    if (armvm->mem->read_word(armvm->mem->data, address, &memvalue)) {
+        fprintf(stderr, "ERROR: Could not read word from memory.\n");
+        goto err;
+    }
+
+    if (armvm->regs->write_gpr(armvm->regs->data, t, &memvalue)) {
+        fprintf(stderr, "ERROR: Could not write to gpr.\n");
+        goto err;
     }
 
     if (armv6m_update_pc(armvm, instruction)) {

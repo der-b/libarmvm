@@ -134,6 +134,7 @@ int armv6m_set_EPSR_T(struct armvm *armvm, uint32_t epsr_t);
  */
 int armv6m_BranchTo(struct armvm *armvm, uint32_t address);
 
+
 /**
  * @brief Counts the set bits in val.
  * See BitCount() in ARMv6-M Architecture Reference Manual
@@ -142,6 +143,16 @@ int armv6m_BranchTo(struct armvm *armvm, uint32_t address);
  */
 uint8_t armv6m_BitCount(uint32_t val);
 
+
+/**
+ * @brief Aligns x to y;
+ * See Align() in ARMv6-M Architecture Reference Manual
+ *
+ * @return Aligned value.
+ */
+uint32_t armv6m_Align(uint32_t x, uint32_t y);
+
 int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 #endif
