@@ -3,6 +3,33 @@
 #include <libarmvm_ci.h>
 #include <stdio.h>
 
+// TODO: Make a cmake flag for this
+#define PRINT_ASM_ON
+#ifdef PRINT_ASM_ON
+
+#define PRINT_PC(armvm)\
+    {\
+        uint32_t pc;\
+        if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) { \
+            fprintf(stderr, "ERROR: Could not write PSR register.\n"); \
+            goto err;\
+        }\
+        printf("0x%08x: ", pc);\
+    }
+
+#define PRINT_ASM(fmt, ...) \
+    {\
+        printf(fmt, ##__VA_ARGS__);\
+    }
+
+#else
+
+#define PRINT_ASM(fmt, ...)
+#define PRINT_PC(armvm)
+
+#endif
+
+
 int armv6m_init(struct armv6m *armv6m)
 {
     return ARMVM_RET_SUCCESS;
@@ -193,26 +220,6 @@ int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruct
             }
             fprintf(stderr, "\n");
         }
-    } else {
-        if (instruction->is32Bit) {
-            printf("Instruction: 32Bit, 0x%08x, 0b", instruction->i._32bit);
-            for (size_t i = 0; i < 32; ++i) {
-                printf("%d", 0x1 & (instruction->i._16bit >> (31-i)));
-                if (0 == (i+1) % 4) {
-                    printf(" ");
-                }
-            }
-            printf("\n");
-        } else {
-            printf("Instruction: 16Bit, 0x%04x, 0b", instruction->i._16bit);
-            for (size_t i = 0; i < 16; ++i) {
-                printf("%d", 0x1 & (instruction->i._16bit >> (15-i)));
-                if (0 == (i+1) % 4) {
-                    printf(" ");
-                }
-            }
-            printf("\n");
-        }
     }
 
     return ret;
@@ -353,6 +360,47 @@ uint32_t armv6m_Align(uint32_t x, uint32_t y)
 }
 
 
+const char *armv6m_reg_idx_to_string(uint8_t reg_idx)
+{
+    switch(reg_idx) {
+        case 0:
+            return "R0";
+        case 1:
+            return "R1";
+        case 2:
+            return "R2";
+        case 3:
+            return "R3";
+        case 4:
+            return "R4";
+        case 5:
+            return "R5";
+        case 6:
+            return "R6";
+        case 7:
+            return "R7";
+        case 8:
+            return "R8";
+        case 9:
+            return "R9";
+        case 10:
+            return "R10";
+        case 11:
+            return "R11";
+        case 12:
+            return "R12";
+        case 13:
+            return "SP/R13";
+        case 14:
+            return "LR/R14";
+        case 15:
+            return "PC/R15";
+        default:
+            return "<unknown register>";
+    }
+}
+
+
 int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction)
 {
     assert(armvm);
@@ -389,8 +437,17 @@ int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instru
         goto err;
     }
     
+    PRINT_PC(armvm);
+    PRINT_ASM("PUSH ");
+    uint8_t first = 1;
     for (size_t i = 0; i <= 14; ++i) {
         if ((0x1 << i) & registers) {
+            if (!first) {
+                PRINT_ASM(", ");
+            }
+            PRINT_ASM("%s", armv6m_reg_idx_to_string(i));
+            first = 0;
+
             uint32_t value;
             if (armvm->regs->read_gpr(armvm->regs->data, i, &value)) {
                 fprintf(stderr, "ERROR: Could not read gpr register.\n");
@@ -406,6 +463,7 @@ int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instru
             address += 4;
         }
     }
+    PRINT_ASM("\n");
 
     if (armv6m_update_pc(armvm, instruction)) {
         ret = ARMVM_RET_FAIL;
@@ -448,6 +506,9 @@ int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction 
     } else {
         address = base - imm32;
     }
+
+    PRINT_PC(armvm);
+    PRINT_ASM("LDR %s, [PC, #0x%x]\n", armv6m_reg_idx_to_string(t), imm32);
 
     uint32_t memvalue;
     if (armvm->mem->read_word(armvm->mem->data, address, &memvalue)) {

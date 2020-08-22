@@ -152,6 +152,12 @@ uint8_t armv6m_BitCount(uint32_t val);
  */
 uint32_t armv6m_Align(uint32_t x, uint32_t y);
 
+
+/**
+ * @brief Returns a pointer to a string description of the register index.
+ */
+const char *armv6m_reg_idx_to_string(uint8_t reg_idx);
+
 int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
