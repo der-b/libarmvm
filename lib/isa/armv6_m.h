@@ -131,6 +131,27 @@ int armv6m_BLXWritePC(struct armvm *armvm, uint32_t address);
 
 
 /**
+ * @brief Sets the Application Program Status register.
+ *
+ * @see APSR_N
+ * @see APSR_Z
+ * @see APSR_C
+ * @see APSR_V
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_set_APSR(struct armvm *armvm, uint32_t apsr);
+
+
+/**
+ * @brief Gets the Application Program Status register.
+ *
+ * @param apsr Pointer to the memory destination to store the APSR.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_get_APSR(struct armvm *armvm, uint32_t *apsr);
+
+
+/**
  * @brief Retrieves the EPSR.T flag.
  *
  * @param epsr_t Pointer to the memory destination to store the flag.
@@ -210,6 +231,6 @@ int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instru
 int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
-
+int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 #endif

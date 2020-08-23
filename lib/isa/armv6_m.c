@@ -32,21 +32,26 @@
 
 #define UNSET_APSR_ALL(apsr) (apsr = apsr & ~(0b1111 << 28));
 
-#define SET_APSR_N(apsr)     (apsr = apsr | (0x1 << 31))
-#define UNSET_APSR_N(apsr)   (apsr = (~(0x1 << 31)) & apsr)
-#define GET_APSR_N(apsr)     ((apsr & (0x1 << 31)) >> 31)
+#define APSR_N (0x1 << 31)
+#define APSR_Z (0x1 << 30)
+#define APSR_C (0x1 << 29)
+#define APSR_V (0x1 << 28)
 
-#define SET_APSR_Z(apsr)     (apsr = apsr | (0x1 << 30))
-#define UNSET_APSR_Z(apsr)   (apsr = (~(0x1 << 30)) & apsr)
-#define GET_APSR_Z(apsr)     ((apsr & (0x1 << 30)) >> 30)
+#define SET_APSR_N(apsr)     (apsr = apsr | APSR_N)
+#define UNSET_APSR_N(apsr)   (apsr = (~APSR_N) & apsr)
+#define GET_APSR_N(apsr)     ((apsr & APSR_N) >> 31)
 
-#define SET_APSR_C(apsr)     (apsr = apsr | (0x1 << 29))
-#define UNSET_APSR_C(apsr)   (apsr = (~(0x1 << 29)) & apsr)
-#define GET_APSR_C(apsr)     ((apsr & (0x1 << 29)) >> 29)
+#define SET_APSR_Z(apsr)     (apsr = apsr | APSR_Z)
+#define UNSET_APSR_Z(apsr)   (apsr = (~APSR_Z) & apsr)
+#define GET_APSR_Z(apsr)     ((apsr & APSR_Z) >> 30)
 
-#define SET_APSR_V(apsr)     (apsr = apsr | (0x1 << 28))
-#define UNSET_APSR_V(apsr)   (apsr = (~(0x1 << 28)) & apsr)
-#define GET_APSR_V(apsr)     ((apsr & (0x1 << 28)) >> 28)
+#define SET_APSR_C(apsr)     (apsr = apsr | APSR_C)
+#define UNSET_APSR_C(apsr)   (apsr = (~APSR_C) & apsr)
+#define GET_APSR_C(apsr)     ((apsr & APSR_C) >> 29)
+
+#define SET_APSR_V(apsr)     (apsr = apsr | APSR_V)
+#define UNSET_APSR_V(apsr)   (apsr = (~APSR_V) & apsr)
+#define GET_APSR_V(apsr)     ((apsr & APSR_V) >> 28)
 
 
 int armv6m_init(struct armv6m *armv6m)
@@ -201,7 +206,9 @@ int _execute_32bit_instruction(struct armvm *armvm, const struct armv6m_instruct
 int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruction *instruction) {
     int ret = ARMVM_RET_FAIL;
 
-    if (instruction->i._16bit >> 12 == 0b1011) {
+    if (instruction->i._16bit >> 11 == 0b00100) {
+        ret = armv6m_ins_MOV_immediate_T1(armvm, instruction);
+    } else if (instruction->i._16bit >> 12 == 0b1011) {
         ret = armv6m_ins_PUSH(armvm, instruction);
     } else if (instruction->i._16bit >> 11 == 0b01001) {
         ret = armv6m_ins_LDR_literal(armvm, instruction);
@@ -303,10 +310,61 @@ err:
 }
 
 
+int armv6m_set_APSR(struct armvm *armvm, uint32_t apsr)
+{
+    assert(armvm);
+    assert(armvm->regs);
+    assert(armvm->regs->read_psr);
+    assert(armvm->regs->write_psr);
+    assert(armvm->regs->data);
+
+    uint32_t psr;
+    if (armvm->regs->read_psr(armvm->regs->data, &psr)) {
+        fprintf(stderr, "ERROR: Could not read PSR register.\n");
+        goto err;
+    }
+
+    UNSET_APSR_ALL(psr);
+    apsr = apsr & (((uint32_t)0b1111) << 28);
+    psr = psr | apsr;
+
+    if (armvm->regs->write_psr(armvm->regs->data, &psr)) {
+        fprintf(stderr, "ERROR: Could not write PSR register.\n");
+        goto err;
+    }
+
+    return ARMVM_RET_SUCCESS;
+err:
+    return ARMVM_RET_FAIL;
+}
+
+
+int armv6m_get_APSR(struct armvm *armvm, uint32_t *apsr)
+{
+    assert(armvm);
+    assert(armvm->regs);
+    assert(armvm->regs->read_psr);
+    assert(armvm->regs->write_psr);
+    assert(armvm->regs->data);
+
+    if (armvm->regs->read_psr(armvm->regs->data, apsr)) {
+        fprintf(stderr, "ERROR: Could not read PSR register.\n");
+        goto err;
+    }
+
+    *apsr = *apsr & (((uint32_t)0b1111) << 28);
+
+    return ARMVM_RET_SUCCESS;
+err:
+    return ARMVM_RET_FAIL;
+}
+
+
 int armv6m_get_EPSR_T(struct armvm *armvm, uint32_t *epsr_t)
 {
     assert(armvm);
     assert(armvm->regs);
+    assert(armvm->regs->read_psr);
     assert(armvm->regs->data);
 
     uint32_t psr;
@@ -327,6 +385,8 @@ int armv6m_set_EPSR_T(struct armvm *armvm, uint32_t epsr_t)
 {
     assert(armvm);
     assert(armvm->regs);
+    assert(armvm->regs->read_psr);
+    assert(armvm->regs->write_psr);
     assert(armvm->regs->data);
 
     uint32_t psr;
@@ -652,33 +712,24 @@ int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruct
     // two's complement
     Rm = ~Rm + 1;
 
-    uint32_t psr;
-    if (armvm->regs->read_psr(armvm->regs->data, &psr)) {
-        fprintf(stderr, "ERROR: Could not read psr.\n");
-        ret = ARMVM_RET_FAIL;
-        goto err;
-    }
-
-    UNSET_APSR_ALL(psr);
-
+    uint32_t apsr = 0;
     if (INT32_MAX - Rn <= Rm) {
-        SET_APSR_V(psr);
+        apsr |= APSR_V;
     }
 
     if (UINT32_MAX - Rn <= Rm) {
-        SET_APSR_C(psr);
+        apsr |= APSR_C;
     }
 
     if (0 == Rn + Rm) {
-        SET_APSR_Z(psr);
+        apsr |= APSR_Z;
     }
 
     if (0 > Rn + Rm) {
-        SET_APSR_N(psr);
+        apsr |= APSR_N;
     }
 
-    if (armvm->regs->write_psr(armvm->regs->data, &psr)) {
-        fprintf(stderr, "ERROR: Could not write psr.\n");
+    if (armv6m_set_APSR(armvm, apsr)) {
         ret = ARMVM_RET_FAIL;
         goto err;
     }
@@ -715,7 +766,7 @@ int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instru
     PRINT_ASM("B%s 0x%x\n", armv6m_cond_to_string(cond), address);
 
     uint32_t apsr;
-    if (armvm->regs->read_psr(armvm->regs->data, &apsr)) {
+    if (armv6m_get_APSR(armvm, &apsr)) {
         fprintf(stderr, "ERROR: Could not read psr.\n");
         ret = ARMVM_RET_FAIL;
         goto err;
@@ -734,3 +785,63 @@ int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instru
 err:
     return ret;
 }
+
+
+int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t d = (instruction->i._16bit >> 8) & 0b111;
+    uint32_t imm32 = instruction->i._16bit & 0xff;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("MOVS %s, #%u\n", armv6m_reg_idx_to_string(d), imm32);
+
+    if (armvm->regs->write_gpr(armvm->regs->data, d, &imm32)) {
+        fprintf(stderr, "ERROR: Could not write gpr.\n");
+        goto err;
+    }
+
+
+    uint32_t apsr = 0;
+    if (armv6m_get_APSR(armvm, &apsr)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (imm32 & (0x1 << 31)) {
+        SET_APSR_N(apsr);
+    }
+
+    if (0 == imm32) {
+        SET_APSR_Z(apsr);
+    }
+
+
+    if (armv6m_set_APSR(armvm, apsr)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+/*
+{
+    int ret = ARMVM_RET_FAIL;
+    printf("%s(): Not Yet Implemented.\n", __func__);
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+*/
