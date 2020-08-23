@@ -19,6 +19,29 @@ enum armv6m_execution_mode {
 
 
 /**
+ * @brief Contains the condition codes.
+ */
+enum armv6m_condition_codes {
+    EQ =  0, /**< APSR.Z == 1, Equal */
+    NQ =  1, /**< APSR.Z == 0, Not equal */
+    CS =  2, /**< APSR.C == 1, Carry set/Unsigned higher or same*/
+    CC =  3, /**< APSR.C == 0, Carry cler/Unsigned lower*/
+    MI =  4, /**< APSR.N == 1, Minus/Negative */
+    PL =  5, /**< APSR.N == 0, Plus/Positiv or zero */
+    VS =  6, /**< APSR.V == 1, Overflow */
+    VC =  7, /**< APSR.V == 0, No overflow */
+    HI =  8, /**< APSR.C == 1 and APSR.Z == 0, Unsigned higher */
+    LS =  9, /**< APSR.C == 0 or APSR.Z == 1, Unsigned lower or same */
+    GE = 10, /**< APSR.N == APSR.V, Signed greater than or equal */
+    LT = 11, /**< APSR.N != APSR.V, Signed less than */
+    GT = 12, /**< APSR.Z == 0 and APSR.N == APSR.V, Signed greater than */
+    LE = 13, /**< APSR.Z == 1 or APSR.N != APSR.V, Signed less than or equal */
+    AL = 14, /**< Always (unconditional) (Never encoded in any armv6-m instruction */
+    UNDEF = 15, /**< Undefined */
+};
+
+
+/**
  * @brief Representation of one instruction.
  */
 struct armv6m_instruction {
@@ -136,6 +159,16 @@ int armv6m_BranchTo(struct armvm *armvm, uint32_t address);
 
 
 /**
+ * @brief Sets the current PC and deletes the least significant bit of PC.
+ * See BranchWritePC() in ARMv6-M Architecture Reference Manual
+ *
+ * @param address Address to write into the PC.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_BranchWritePC(struct armvm *armvm, uint32_t address);
+
+
+/**
  * @brief Counts the set bits in val.
  * See BitCount() in ARMv6-M Architecture Reference Manual
  *
@@ -154,13 +187,29 @@ uint32_t armv6m_Align(uint32_t x, uint32_t y);
 
 
 /**
+ * @brief Checkes wheter the condition is fullfilled or not.
+ * See ConditionPassed() in ARMv6-M Architecture Reference Manual
+ *
+ * @return Returns 1 if the condition is passed, otherwise false.
+ */
+int armv6m_ConditionPassed(uint32_t apsr, enum armv6m_condition_codes cond);
+
+
+/**
  * @brief Returns a pointer to a string description of the register index.
  */
 const char *armv6m_reg_idx_to_string(uint8_t reg_idx);
 
+
+/**
+ * @brief Returns a pointer to a string description of a conditional code.
+ */
+const char *armv6m_cond_to_string(enum armv6m_condition_codes cond);
+
 int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 
 #endif

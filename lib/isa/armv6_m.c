@@ -30,6 +30,25 @@
 #endif
 
 
+#define UNSET_APSR_ALL(apsr) (apsr = apsr & ~(0b1111 << 28));
+
+#define SET_APSR_N(apsr)     (apsr = apsr | (0x1 << 31))
+#define UNSET_APSR_N(apsr)   (apsr = (~(0x1 << 31)) & apsr)
+#define GET_APSR_N(apsr)     ((apsr & (0x1 << 31)) >> 31)
+
+#define SET_APSR_Z(apsr)     (apsr = apsr | (0x1 << 30))
+#define UNSET_APSR_Z(apsr)   (apsr = (~(0x1 << 30)) & apsr)
+#define GET_APSR_Z(apsr)     ((apsr & (0x1 << 30)) >> 30)
+
+#define SET_APSR_C(apsr)     (apsr = apsr | (0x1 << 29))
+#define UNSET_APSR_C(apsr)   (apsr = (~(0x1 << 29)) & apsr)
+#define GET_APSR_C(apsr)     ((apsr & (0x1 << 29)) >> 29)
+
+#define SET_APSR_V(apsr)     (apsr = apsr | (0x1 << 28))
+#define UNSET_APSR_V(apsr)   (apsr = (~(0x1 << 28)) & apsr)
+#define GET_APSR_V(apsr)     ((apsr & (0x1 << 28)) >> 28)
+
+
 int armv6m_init(struct armv6m *armv6m)
 {
     return ARMVM_RET_SUCCESS;
@@ -188,6 +207,10 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
         ret = armv6m_ins_LDR_literal(armvm, instruction);
     } else if (instruction->i._16bit >> 6 == 0b0100001010) {
         ret = armv6m_ins_CMP_register_T1(armvm, instruction);
+    } else if (instruction->i._16bit >> 12 == 0b1101) {
+        if (((instruction->i._16bit >> 9) & 0b111) != 0b111) {
+            ret = armv6m_ins_B_T1(armvm, instruction);
+        }
     }
     return ret;
 }
@@ -204,7 +227,7 @@ int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruct
 
     if (ARMVM_RET_SUCCESS != ret) {
         if (instruction->is32Bit) {
-            fprintf(stderr, "ERROR: Instruction: 32Bit, 0x%08x, 0b", instruction->i._32bit);
+            fprintf(stderr, "ERROR: Unknown instruction: 32Bit, 0x%08x, 0b", instruction->i._32bit);
             for (size_t i = 0; i < 32; ++i) {
                 fprintf(stderr, "%d", 0x1 & (instruction->i._16bit >> (31-i)));
                 if (0 == (i+1) % 4) {
@@ -213,7 +236,7 @@ int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruct
             }
             fprintf(stderr, "\n");
         } else {
-            fprintf(stderr, "ERROR: Instruction: 16Bit, 0x%04x, 0b", instruction->i._16bit);
+            fprintf(stderr, "ERROR: Unknown  instruction: 16Bit, 0x%04x, 0b", instruction->i._16bit);
             for (size_t i = 0; i < 16; ++i) {
                 fprintf(stderr, "%d", 0x1 & (instruction->i._16bit >> (15-i)));
                 if (0 == (i+1) % 4) {
@@ -344,6 +367,14 @@ err:
 }
 
 
+int armv6m_BranchWritePC(struct armvm *armvm, uint32_t address)
+{
+    address = address & ~((uint32_t)0x1);
+
+    return armv6m_BranchTo(armvm, address);
+}
+
+
 uint8_t armv6m_BitCount(uint32_t val)
 {
     uint8_t sum = 0;
@@ -359,6 +390,35 @@ uint8_t armv6m_BitCount(uint32_t val)
 uint32_t armv6m_Align(uint32_t x, uint32_t y)
 {
     return y * (x / y);
+}
+
+
+
+int armv6m_ConditionPassed(uint32_t apsr, enum armv6m_condition_codes cond)
+{
+    uint8_t n = GET_APSR_N(apsr);
+    uint8_t z = GET_APSR_Z(apsr);
+    uint8_t c = GET_APSR_C(apsr);
+    uint8_t v = GET_APSR_V(apsr);
+
+    uint8_t tmp = cond >> 1;
+    uint8_t result;
+    switch(tmp) {
+        case 0b000: result = (z == 1); break;
+        case 0b001: result = (c == 1); break;
+        case 0b010: result = (n == 1); break;
+        case 0b011: result = (v == 1); break;
+        case 0b100: result = (c == 1) && (z == 0); break;
+        case 0b101: result = (n == v); break;
+        case 0b110: result = (n == v) && (z == 0); break;
+        case 0b111: result = (1 == 1); break;
+    }
+
+    if ((cond & 0x1) && cond != 0b1111) {
+        result = !result;
+    }
+
+    return result;
 }
 
 
@@ -399,6 +459,32 @@ const char *armv6m_reg_idx_to_string(uint8_t reg_idx)
             return "PC/R15";
         default:
             return "<unknown register>";
+    }
+}
+
+
+const char *armv6m_cond_to_string(enum armv6m_condition_codes cond)
+{
+    switch (cond) {
+#define CASE(x) case x: return #x;
+        CASE(EQ);
+        CASE(NQ);
+        CASE(CS);
+        CASE(CC);
+        CASE(MI);
+        CASE(PL);
+        CASE(VS);
+        CASE(VC);
+        CASE(HI);
+        CASE(LS);
+        CASE(GE);
+        CASE(LT);
+        CASE(GT);
+        CASE(LE);
+        CASE(AL);
+#undef CASE
+        default:
+           return "<unknown condition>";
     }
 }
 
@@ -500,16 +586,16 @@ int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction 
         goto err;
     }
 
+    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
+    pc += 4;
+
     uint32_t base = armv6m_Align(pc,4);
 
     uint32_t address;
     if (add) { 
-        // "+ 4" is not as described in the ARMv6-M Architecture Reference Manual, but
-        // seems to deliver the correct value
-        address = base + imm32 + 4; 
+        address = base + imm32; 
     } else {
-        // TODO: Check, whether the commend above also applies here.
-        address = base - imm32 + 4;
+        address = base - imm32;
     }
 
     PRINT_PC(armvm);
@@ -566,24 +652,6 @@ int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruct
     // two's complement
     Rm = ~Rm + 1;
 
-    uint32_t new_apsr = 0;
-
-    if (INT32_MAX - Rn <= Rm) {
-        new_apsr &= 0x1 << 28;
-    }
-
-    if (UINT32_MAX - Rn <= Rm) {
-        new_apsr &= 0x1 << 29;
-    }
-
-    if (0 == Rn + Rm) {
-        new_apsr &= 0x1 << 30;
-    }
-
-    if (0 > Rn + Rm) {
-        new_apsr &= 0x1 << 31;
-    }
-
     uint32_t psr;
     if (armvm->regs->read_psr(armvm->regs->data, &psr)) {
         fprintf(stderr, "ERROR: Could not read psr.\n");
@@ -591,8 +659,23 @@ int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruct
         goto err;
     }
 
-    psr = psr & ~(0b1111 << 28);
-    psr = psr | new_apsr;
+    UNSET_APSR_ALL(psr);
+
+    if (INT32_MAX - Rn <= Rm) {
+        SET_APSR_V(psr);
+    }
+
+    if (UINT32_MAX - Rn <= Rm) {
+        SET_APSR_C(psr);
+    }
+
+    if (0 == Rn + Rm) {
+        SET_APSR_Z(psr);
+    }
+
+    if (0 > Rn + Rm) {
+        SET_APSR_N(psr);
+    }
 
     if (armvm->regs->write_psr(armvm->regs->data, &psr)) {
         fprintf(stderr, "ERROR: Could not write psr.\n");
@@ -604,6 +687,49 @@ int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruct
         ret = ARMVM_RET_FAIL;
         goto err;
     }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t cond = (instruction->i._16bit >> 8) & 0b1111;
+    int32_t imm32 = ((int8_t)(instruction->i._16bit & 0xff)) << 1;
+    uint32_t pc;
+
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) {
+        fprintf(stderr, "ERROR: Could not read PC register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
+    pc += 4;
+
+    uint32_t address = pc + imm32;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("B%s 0x%x\n", armv6m_cond_to_string(cond), address);
+
+    uint32_t apsr;
+    if (armvm->regs->read_psr(armvm->regs->data, &apsr)) {
+        fprintf(stderr, "ERROR: Could not read psr.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (armv6m_ConditionPassed(apsr, cond)) {
+        armv6m_BranchWritePC(armvm, address);
+    } else {
+        if (armv6m_update_pc(armvm, instruction)) {
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
+    }
+
 
 err:
     return ret;
