@@ -160,5 +160,7 @@ const char *armv6m_reg_idx_to_string(uint8_t reg_idx);
 
 int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+
 
 #endif

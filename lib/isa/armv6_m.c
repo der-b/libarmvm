@@ -186,6 +186,8 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
         ret = armv6m_ins_PUSH(armvm, instruction);
     } else if (instruction->i._16bit >> 11 == 0b01001) {
         ret = armv6m_ins_LDR_literal(armvm, instruction);
+    } else if (instruction->i._16bit >> 6 == 0b0100001010) {
+        ret = armv6m_ins_CMP_register_T1(armvm, instruction);
     }
     return ret;
 }
@@ -501,14 +503,17 @@ int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction 
     uint32_t base = armv6m_Align(pc,4);
 
     uint32_t address;
-    if (add) {
-        address = base + imm32;
+    if (add) { 
+        // "+ 4" is not as described in the ARMv6-M Architecture Reference Manual, but
+        // seems to deliver the correct value
+        address = base + imm32 + 4; 
     } else {
-        address = base - imm32;
+        // TODO: Check, whether the commend above also applies here.
+        address = base - imm32 + 4;
     }
 
     PRINT_PC(armvm);
-    PRINT_ASM("LDR %s, [PC, #0x%x]\n", armv6m_reg_idx_to_string(t), imm32);
+    PRINT_ASM("LDR %s, [PC, #%u] ; load from 0x%x\n", armv6m_reg_idx_to_string(t), imm32, address);
 
     uint32_t memvalue;
     if (armvm->mem->read_word(armvm->mem->data, address, &memvalue)) {
@@ -518,6 +523,80 @@ int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction 
 
     if (armvm->regs->write_gpr(armvm->regs->data, t, &memvalue)) {
         fprintf(stderr, "ERROR: Could not write to gpr.\n");
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    assert(armvm);
+    assert(armvm->regs);
+    assert(armvm->regs->read_gpr);
+    assert(armvm->regs->data);
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t n = instruction->i._16bit & 0x7;
+    uint8_t m = (instruction->i._16bit >> 3) & 0x7;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("CMP %s, %s\n", armv6m_reg_idx_to_string(n), armv6m_reg_idx_to_string(m));
+
+    uint32_t Rn;
+    if (armvm->regs->read_gpr(armvm->regs->data, n, &Rn)) {
+        fprintf(stderr, "ERROR: Could not read gp register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+    
+    uint32_t Rm;
+    if (armvm->regs->read_gpr(armvm->regs->data, m, &Rm)) {
+        fprintf(stderr, "ERROR: Could not read gp register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    // two's complement
+    Rm = ~Rm + 1;
+
+    uint32_t new_apsr = 0;
+
+    if (INT32_MAX - Rn <= Rm) {
+        new_apsr &= 0x1 << 28;
+    }
+
+    if (UINT32_MAX - Rn <= Rm) {
+        new_apsr &= 0x1 << 29;
+    }
+
+    if (0 == Rn + Rm) {
+        new_apsr &= 0x1 << 30;
+    }
+
+    if (0 > Rn + Rm) {
+        new_apsr &= 0x1 << 31;
+    }
+
+    uint32_t psr;
+    if (armvm->regs->read_psr(armvm->regs->data, &psr)) {
+        fprintf(stderr, "ERROR: Could not read psr.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    psr = psr & ~(0b1111 << 28);
+    psr = psr | new_apsr;
+
+    if (armvm->regs->write_psr(armvm->regs->data, &psr)) {
+        fprintf(stderr, "ERROR: Could not write psr.\n");
+        ret = ARMVM_RET_FAIL;
         goto err;
     }
 
