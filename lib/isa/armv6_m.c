@@ -210,12 +210,14 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
         ret = armv6m_ins_LSL_immediate_T1(armvm, instruction);
     } else if (instruction->i._16bit >> 11 == 0b00100) {
         ret = armv6m_ins_MOV_immediate_T1(armvm, instruction);
-    } else if (instruction->i._16bit >> 12 == 0b1011) {
-        ret = armv6m_ins_PUSH(armvm, instruction);
-    } else if (instruction->i._16bit >> 11 == 0b01001) {
-        ret = armv6m_ins_LDR_literal(armvm, instruction);
     } else if (instruction->i._16bit >> 6 == 0b0100001010) {
         ret = armv6m_ins_CMP_register_T1(armvm, instruction);
+    } else if (instruction->i._16bit >> 11 == 0b01001) {
+        ret = armv6m_ins_LDR_literal_T1(armvm, instruction);
+    } else if (instruction->i._16bit >> 11 == 0b01101) {
+        ret = armv6m_ins_LDR_immediate_T1(armvm, instruction);
+    } else if (instruction->i._16bit >> 9 == 0b1011010) {
+        ret = armv6m_ins_PUSH_T1(armvm, instruction);
     } else if (instruction->i._16bit >> 12 == 0b1101) {
         if (((instruction->i._16bit >> 9) & 0b111) != 0b111) {
             ret = armv6m_ins_B_T1(armvm, instruction);
@@ -551,7 +553,7 @@ const char *armv6m_cond_to_string(enum armv6m_condition_codes cond)
 }
 
 
-int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction)
+int armv6m_ins_PUSH_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
 {
     assert(armvm);
     assert(armvm->regs);
@@ -625,7 +627,7 @@ err:
 }
 
 
-int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction)
+int armv6m_ins_LDR_literal_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
 {
     assert(armvm);
     assert(armvm->regs);
@@ -841,8 +843,6 @@ int armv6m_ins_LSL_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
     uint8_t Rd = instruction->i._16bit & 0b111;
     uint8_t Rm = (instruction->i._16bit >> 3) & 0b111;
     uint8_t imm5 = (instruction->i._16bit >> 6) & 0b11111;
-    uint8_t shift_n = imm5;
-
 
     PRINT_PC(armvm);
     PRINT_ASM("LSLS %s, %s, #%u\n", armv6m_reg_idx_to_string(Rd),
@@ -850,6 +850,7 @@ int armv6m_ins_LSL_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
                                     imm5);
 
     if (0 == imm5) {
+        // TODO:
         printf("%s(): For imm5==0: Not Yet Implemented.\n", __func__);
         ret = ARMVM_RET_FAIL;
     }
@@ -887,6 +888,43 @@ int armv6m_ins_LSL_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
 
     if (armvm->regs->write_gpr(armvm->regs->data, Rd, &m)) {
         fprintf(stderr, "ERROR: Could not write gpr.\n");
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rt = instruction->i._16bit & 0b111;
+    uint8_t Rn = (instruction->i._16bit >> 3) & 0b111;
+    uint8_t imm5 = (instruction->i._16bit >> 6) & 0b11111;
+    uint32_t imm32 = ((uint32_t)imm5) << 2;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("LDR %s, [%s, #%u]\n", armv6m_reg_idx_to_string(Rt),
+                                     armv6m_reg_idx_to_string(Rn),
+                                     imm5);
+
+    uint32_t n;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rn, &n)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t address = n + imm32;
+
+    uint32_t data;
+    if (armvm->mem->read_word_unaligned(armvm->mem->data, address, &data)) {
+        fprintf(stderr, "ERROR: Could not read from memory.\n");
         goto err;
     }
 

@@ -24,10 +24,13 @@
 #define MAPPED_BASE_ADDR (0x00000000)
 #define MAPPED_SIZE      (128 * 1024)
 
-struct libarmvm_memory_area *_get_memory_area(struct libarmvm_memory *mem, const uint32_t addr)
+#define CORTEX_M_SYS_BASE_ADDR (0xE0000000)
+#define CORTEX_M_SYS_SIZE      (1024 * 1024)
+
+struct libarmvm_memory_area *_get_memory_area(struct libarmvm_memory *mem, const uint32_t addr, const uint32_t size)
 {
     for (size_t i = 0; i < mem->areas_size; ++i) {
-        if (addr >= mem->areas[i].addr && addr < (mem->areas[i].addr + mem->areas[i].size)) {
+        if (addr >= mem->areas[i].addr && addr + (size - 1) < (mem->areas[i].addr + mem->areas[i].size)) {
             return &mem->areas[i];
         }
     }
@@ -37,7 +40,7 @@ struct libarmvm_memory_area *_get_memory_area(struct libarmvm_memory *mem, const
 
 int _read_byte(void *data, uint32_t src_addr, uint8_t *dest)
 {
-    struct libarmvm_memory_area *area = _get_memory_area(data, src_addr);
+    struct libarmvm_memory_area *area = _get_memory_area(data, src_addr, 1);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;
     }
@@ -55,14 +58,9 @@ int _read_byte(void *data, uint32_t src_addr, uint8_t *dest)
 }
 
 
-int _read_halfword(void *data, uint32_t src_addr, uint16_t *dest)
+int _read_halfword_unaligned(void *data, uint32_t src_addr, uint16_t *dest)
 {
-    // if address is not half word aligned
-    if (src_addr % 2) {
-        return ARMVM_RET_ADDR_NOT_ALIGN;
-    }
-
-    struct libarmvm_memory_area *area = _get_memory_area(data, src_addr);
+    struct libarmvm_memory_area *area = _get_memory_area(data, src_addr, 2);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;
     }
@@ -70,10 +68,41 @@ int _read_halfword(void *data, uint32_t src_addr, uint16_t *dest)
     uint32_t offset = src_addr - area->addr;
 
     if (REMAP == area->type) {
-        return _read_halfword(data, offset + area->u.remap_addr, dest);
+        return _read_halfword_unaligned(data, offset + area->u.remap_addr, dest);
     }
 
     uint16_t *mem = (uint16_t *)(area->u.data + offset);
+    *dest = *mem;
+
+    return ARMVM_RET_SUCCESS;
+}
+
+
+int _read_halfword(void *data, uint32_t src_addr, uint16_t *dest)
+{
+    // if address is not half word aligned
+    if (src_addr % 2) {
+        return ARMVM_RET_ADDR_NOT_ALIGN;
+    }
+
+    return _read_halfword_unaligned(data, src_addr, dest);
+}
+
+
+int _read_word_unaligned(void *data, uint32_t src_addr, uint32_t *dest)
+{
+    struct libarmvm_memory_area *area = _get_memory_area(data, src_addr, 4);
+    if (!area) {
+        return ARMVM_RET_INVALID_ADDR;
+    }
+
+    uint32_t offset = src_addr - area->addr;
+
+    if (REMAP == area->type) {
+        return _read_word_unaligned(data, offset + area->u.remap_addr, dest);
+    }
+
+    uint32_t *mem = (uint32_t *)(area->u.data + offset);
     *dest = *mem;
 
     return ARMVM_RET_SUCCESS;
@@ -87,27 +116,13 @@ int _read_word(void *data, uint32_t src_addr, uint32_t *dest)
         return ARMVM_RET_ADDR_NOT_ALIGN;
     }
 
-    struct libarmvm_memory_area *area = _get_memory_area(data, src_addr);
-    if (!area) {
-        return ARMVM_RET_INVALID_ADDR;
-    }
-
-    uint32_t offset = src_addr - area->addr;
-
-    if (REMAP == area->type) {
-        return _read_word(data, offset + area->u.remap_addr, dest);
-    }
-
-    uint32_t *mem = (uint32_t *)(area->u.data + offset);
-    *dest = *mem;
-
-    return ARMVM_RET_SUCCESS;
+    return _read_word_unaligned(data, src_addr, dest);
 }
 
 
 int _write_byte(void *data, uint32_t dest_addr, const uint8_t *src)
 {
-    struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr);
+    struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr, 1);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;
     }
@@ -125,13 +140,9 @@ int _write_byte(void *data, uint32_t dest_addr, const uint8_t *src)
 }
 
 
-int _write_halfword(void *data, uint32_t dest_addr, const uint16_t *src)
+int _write_halfword_unaligned(void *data, uint32_t dest_addr, const uint16_t *src)
 {
-    // if address is not halfword aligned
-    if (dest_addr % 2) {
-        return ARMVM_RET_ADDR_NOT_ALIGN;
-    }
-    struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr);
+    struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr, 2);
     if (!area) {
         return ARMVM_RET_INVALID_ADDR;
     }
@@ -139,10 +150,41 @@ int _write_halfword(void *data, uint32_t dest_addr, const uint16_t *src)
     uint32_t offset = dest_addr - area->addr;
 
     if (REMAP == area->type) {
-        return _write_halfword(data, offset + area->u.remap_addr, src);
+        return _write_halfword_unaligned(data, offset + area->u.remap_addr, src);
     }
 
     uint16_t *mem = (uint16_t *)(area->u.data + offset);
+    *mem = *src;
+
+    return ARMVM_RET_SUCCESS;
+}
+
+
+int _write_halfword(void *data, uint32_t dest_addr, const uint16_t *src)
+{
+    // if address is not halfword aligned
+    if (dest_addr % 2) {
+        return ARMVM_RET_ADDR_NOT_ALIGN;
+    }
+
+    return _write_halfword_unaligned(data, dest_addr, src);
+}
+
+
+int _write_word_unaligned(void *data, uint32_t dest_addr, const uint32_t *src)
+{
+    struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr, 4);
+    if (!area) {
+        return ARMVM_RET_INVALID_ADDR;
+    }
+
+    uint32_t offset = dest_addr - area->addr;
+
+    if (REMAP == area->type) {
+        return _write_word_unaligned(data, offset + area->u.remap_addr, src);
+    }
+
+    uint32_t *mem = (uint32_t *)(area->u.data + offset);
     *mem = *src;
 
     return ARMVM_RET_SUCCESS;
@@ -156,21 +198,7 @@ int _write_word(void *data, uint32_t dest_addr, const uint32_t *src)
         return ARMVM_RET_ADDR_NOT_ALIGN;
     }
 
-    struct libarmvm_memory_area *area = _get_memory_area(data, dest_addr);
-    if (!area) {
-        return ARMVM_RET_INVALID_ADDR;
-    }
-
-    uint32_t offset = dest_addr - area->addr;
-
-    if (REMAP == area->type) {
-        return _write_word(data, offset + area->u.remap_addr, src);
-    }
-
-    uint32_t *mem = (uint32_t *)(area->u.data + offset);
-    *mem = *src;
-
-    return ARMVM_RET_SUCCESS;
+    return _write_word_unaligned(data, dest_addr, src);
 }
 
 
@@ -206,13 +234,13 @@ int libarmvm_memory_init(struct armvm *armvm)
     }
     struct libarmvm_memory *mem = armvm->mem->data;
 
-    mem->areas = calloc(3, sizeof(*mem->areas));
+    mem->areas = calloc(4, sizeof(*mem->areas));
     if (!mem->areas) {
         fprintf(stderr, "ERROR: Not enough memory.\n");
         ret = ARMVM_RET_NO_MEM;
         goto err;
     }
-    mem->areas_size = 3;
+    mem->areas_size = 4;
 
     mem->areas[0].type = REMAP;
     mem->areas[0].addr = MAPPED_BASE_ADDR;
@@ -239,13 +267,28 @@ int libarmvm_memory_init(struct armvm *armvm)
         goto err;
     }
 
+
+    mem->areas[3].type = RAM;
+    mem->areas[3].addr = CORTEX_M_SYS_BASE_ADDR;
+    mem->areas[3].size = CORTEX_M_SYS_SIZE;
+    mem->areas[3].u.data = calloc(mem->areas[3].size, sizeof(uint8_t));
+    if (!mem->areas[3].u.data) {
+        fprintf(stderr, "ERROR: Not enough memory.\n");
+        ret = ARMVM_RET_NO_MEM;
+        goto err;
+    }
+    
     armvm->mem->read_byte     = _read_byte;
     armvm->mem->read_halfword = _read_halfword;
     armvm->mem->read_word     = _read_word;
+    armvm->mem->read_halfword_unaligned = _read_halfword_unaligned;
+    armvm->mem->read_word_unaligned     = _read_word_unaligned;
 
     armvm->mem->write_byte     = _write_byte;
     armvm->mem->write_halfword = _write_halfword;
     armvm->mem->write_word     = _write_word;
+    armvm->mem->write_halfword_unaligned = _write_halfword_unaligned;
+    armvm->mem->write_word_unaligned     = _write_word_unaligned;
 
     return ret;
 err:

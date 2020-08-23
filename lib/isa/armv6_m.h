@@ -227,8 +227,9 @@ const char *armv6m_reg_idx_to_string(uint8_t reg_idx);
  */
 const char *armv6m_cond_to_string(enum armv6m_condition_codes cond);
 
-int armv6m_ins_PUSH(struct armvm *armvm, const struct armv6m_instruction *instruction);
-int armv6m_ins_LDR_literal(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_PUSH_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_LDR_literal_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);

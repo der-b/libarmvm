@@ -82,19 +82,31 @@ struct armvm_memory {
     int (*read_byte)(void *data, uint32_t src_addr, uint8_t *dest);
 
     /**
-     * @brief Same as read_byte() but reads a halfword.
+     * @brief Same as read_byte() but reads a halfword aligned.
      * @see read_byte
      */
     int (*read_halfword)(void *data, uint32_t src_addr, uint16_t *dest);
 
     /**
-     * @brief Same as read_byte() but reads a word.
+     * @brief Same as read_byte() but reads a word aligned.
      * @see read_byte
      */
     int (*read_word)(void *data, uint32_t src_addr, uint32_t *dest);
 
     /**
-     * @brief Writes one byte to virtual machine memory.
+     * @brief Same as read_byte() but reads a halfword unaligned.
+     * @see read_byte
+     */
+    int (*read_halfword_unaligned)(void *data, uint32_t src_addr, uint16_t *dest);
+
+    /**
+     * @brief Same as read_byte() but reads a word unaligned.
+     * @see read_byte
+     */
+    int (*read_word_unaligned)(void *data, uint32_t src_addr, uint32_t *dest);
+
+    /**
+     * @brief Writes one aligned byte to virtual machine memory.
      *
      * @param data Pointer to the data of the loaded memory model.
      * @param dest_addr Address to the memory location of the virtual machine to write.
@@ -107,16 +119,28 @@ struct armvm_memory {
     int (*write_byte)(void *data, uint32_t dest_addr, const uint8_t *src);
 
     /**
-     * @brief Same as write_byte() but writes a halfword.
+     * @brief Same as write_byte() but writes a halfword aligned.
      * @see write_byte
      */
     int (*write_halfword)(void *data, uint32_t dest_addr, const uint16_t *src);
 
     /**
-     * @brief Same as write_byte() but writes a word.
+     * @brief Same as write_byte() but writes a word aligned.
      * @see write_byte
      */
     int (*write_word)(void *data, uint32_t dest_addr, const uint32_t *src);
+    
+    /**
+     * @brief Same as write_byte() but writes a halfword unaligned.
+     * @see write_byte
+     */
+    int (*write_halfword_unaligned)(void *data, uint32_t dest_addr, const uint16_t *src);
+
+    /**
+     * @brief Same as write_byte() but writes a word unaligned.
+     * @see write_byte
+     */
+    int (*write_word_unaligned)(void *data, uint32_t dest_addr, const uint32_t *src);
 };
 
 
