@@ -245,6 +245,10 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
         if (((instruction->i._16bit >> 9) & 0b111) != 0b111) {
             ret = armv6m_ins_B_T1(armvm, instruction);
         }
+
+    } else if (instruction->i._16bit >> 11 == 0b11100) {
+        ret = armv6m_ins_B_T2(armvm, instruction);
+
     }
     return ret;
 }
@@ -1145,6 +1149,39 @@ int armv6m_ins_MOV_register_T1(struct armvm *armvm, const struct armv6m_instruct
         ret = ARMVM_RET_FAIL;
         goto err;
     }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_B_T2(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint32_t imm11 = instruction->i._16bit & 0b11111111111;
+    uint32_t imm32 = ((uint32_t)imm11) << 1;
+    if (imm32 & (1 << 11)) {
+        uint32_t helper = 0xffffffff;
+        helper = helper << 12;
+        imm32 = imm32 | helper;
+    }
+
+    uint32_t pc;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) {
+        fprintf(stderr, "ERROR: Could not read PC register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
+    pc += 4;
+
+    uint32_t address = pc + imm32;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("B %x\n", address);
+
+    armv6m_BranchWritePC(armvm, address);
 
 err:
     return ret;

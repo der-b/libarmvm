@@ -244,6 +244,7 @@ int armv6m_ins_LDR_literal_T1(struct armvm *armvm, const struct armv6m_instructi
 int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_B_T2(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LSL_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
