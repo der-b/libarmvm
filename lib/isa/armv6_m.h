@@ -124,7 +124,7 @@ int armv6m_update_pc(struct armvm *armvm, const struct armv6m_instruction *instr
 
 /**
  * @brief Interworking branch.
- * See TakeReset() in ARMv6-M Architecture Reference Manual
+ * See BLXWritePC() in ARMv6-M Architecture Reference Manual
  *
  * @return ARMVM_RET_SUCCESS on success.
  */
@@ -191,6 +191,16 @@ int armv6m_BranchWritePC(struct armvm *armvm, uint32_t address);
 
 
 /**
+ * @brief Alias for armv6m_BranchWritePC(). 
+ * See ALUWritePC() in ARMv6-M Architecture Reference Manual
+ *
+ * @param address Address to write into the PC.
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_ALUWritePC(struct armvm *armvm, uint32_t address);
+
+
+/**
  * @brief Counts the set bits in val.
  * See BitCount() in ARMv6-M Architecture Reference Manual
  *
@@ -235,6 +245,7 @@ int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
 int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_MOV_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LSL_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_ORR_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_STR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);

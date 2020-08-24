@@ -216,20 +216,31 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
 
     if (instruction->i._16bit >> 11 == 0b00000) {
         ret = armv6m_ins_LSL_immediate_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 11 == 0b00100) {
         ret = armv6m_ins_MOV_immediate_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 6 == 0b0100001010) {
         ret = armv6m_ins_CMP_register_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 6 == 0b0100001100) {
         ret = armv6m_ins_ORR_register_T1(armvm, instruction);
+
+    } else if (instruction->i._16bit >> 8 == 0b01000110) {
+        ret = armv6m_ins_MOV_register_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 11 == 0b01001) {
         ret = armv6m_ins_LDR_literal_T1(armvm, instruction);
+        
     } else if (instruction->i._16bit >> 11 == 0b01100) {
         ret = armv6m_ins_STR_immediate_T1(armvm, instruction);
+        
     } else if (instruction->i._16bit >> 11 == 0b01101) {
         ret = armv6m_ins_LDR_immediate_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 9 == 0b1011010) {
         ret = armv6m_ins_PUSH_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 12 == 0b1101) {
         if (((instruction->i._16bit >> 9) & 0b111) != 0b111) {
             ret = armv6m_ins_B_T1(armvm, instruction);
@@ -448,6 +459,12 @@ int armv6m_BranchWritePC(struct armvm *armvm, uint32_t address)
     address = address & ~((uint32_t)0x1);
 
     return armv6m_BranchTo(armvm, address);
+}
+
+
+int armv6m_ALUWritePC(struct armvm *armvm, uint32_t address)
+{
+    return armv6m_BranchWritePC(armvm, address);
 }
 
 
@@ -1094,6 +1111,47 @@ int armv6m_ins_BL_immediate_T1(struct armvm *armvm, const struct armv6m_instruct
 err:
     return ret;
 }
+
+
+int armv6m_ins_MOV_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rd = (instruction->i._16bit & 0b111) | ((instruction->i._16bit & (0b1 << 7)) >> 4);
+    uint8_t Rm = (instruction->i._16bit >> 3) & 0b1111;
+
+    PRINT_PC(armvm);
+    if (8 == Rd && 8 == Rm) {
+        PRINT_ASM("NOP               ; ");
+    }
+    PRINT_ASM("MOV %s, %s\n", armv6m_reg_idx_to_string(Rd),
+                              armv6m_reg_idx_to_string(Rm));
+
+    uint32_t m;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rm, &m)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    if (ARMV6M_REG_PC == Rd) {
+        armv6m_ALUWritePC(armvm, m);
+    } else {
+        if (armvm->regs->read_gpr(armvm->regs->data, Rd, &m)) {
+            fprintf(stderr, "ERROR: Could not write gpr.\n");
+            goto err;
+        }
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+
 /*
 {
     int ret = ARMVM_RET_FAIL;
