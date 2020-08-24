@@ -100,6 +100,8 @@ int armvm_start(struct armvm *armvm, const struct armvm_opts *opts)
                 goto err_ci;
             }
         }
+        printf("Successful executed %d steps.\n", armvm->opts.steps);
+
     } else {
         while (1) {
             if (armvm->ci->step(armvm)) {

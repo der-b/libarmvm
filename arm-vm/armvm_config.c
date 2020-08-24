@@ -21,7 +21,7 @@ const char short_options[] = "s:p:a:i:hv";
 const char usage_message[] =
 "-p, --program=FILE          Specifies the program, which shall be loaded by the vm.\n"
 "-a, --address=ADDR          Memory location where the program shall be stored.\n"
-"-s, --steps=AMOUNT          Sets how many steps will be executed. If not specified, it will be no limit.\n"
+"-s, --steps=AMOUNT          Sets how many steps will be executed. If not specified, there will be no limit.\n"
 "-i, --isa=ISA               Sets the instruction set architecture.\n"
 "                            Valid values are: Armv6-M, Armv7-M, Armv8-M\n"
 "-h, --help                  Display this help message and exit.\n"
@@ -77,8 +77,14 @@ int armvm_config_init(struct armvm_config *config, int argc, char **argv)
                     assert(sizeof(unsigned long long int) == 8);
                     assert(sizeof(uint64_t) == 8);
                     errno = 0;
-                    uint64_t addr = strtoull(optarg, NULL, 16);
-                    if (errno) {
+                    uint64_t addr;
+                    char *endpoint;
+                    if (0 == strncmp("0x", optarg, 2)) {
+                        addr = strtoull(optarg, &endpoint, 16);
+                    } else {
+                        addr = strtoull(optarg, &endpoint, 10);
+                    }
+                    if (errno || *endpoint != 0) {
                         fprintf(stderr, "ERROR: Argument to option -a/--address is invalid.\n", argv[option_index]);
                         return ARMVM_CONFIG_FAIL;
                     }
@@ -91,8 +97,14 @@ int armvm_config_init(struct armvm_config *config, int argc, char **argv)
                     assert(sizeof(unsigned long long int) == 8);
                     assert(sizeof(uint64_t) == 8);
                     errno = 0;
-                    uint64_t steps = strtoull(optarg, NULL, 16);
-                    if (errno) {
+                    uint64_t steps;
+                    char *endpoint;
+                    if (0 == strncmp("0x", optarg, 2)) {
+                        steps = strtoull(optarg, &endpoint, 16);
+                    } else {
+                        steps = strtoull(optarg, &endpoint, 10);
+                    }
+                    if (errno || *endpoint != 0) {
                         fprintf(stderr, "ERROR: Argument to option -s/--steps is invalid.\n", argv[option_index]);
                         return ARMVM_CONFIG_FAIL;
                     }
