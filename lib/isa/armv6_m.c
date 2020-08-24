@@ -198,8 +198,16 @@ err:
 
 
 int _execute_32bit_instruction(struct armvm *armvm, const struct armv6m_instruction *instruction) {
-    fprintf(stderr, "ERROR: %s(): Not Yet Implemented!\n", __func__);
-    return ARMVM_RET_FAIL;
+    int ret = ARMVM_RET_FAIL;
+
+    if (   (instruction->i._32bit >> (16 + 11)) == 0b11110
+        && (instruction->i._32bit >> 14) & 0b11 == 0b11
+        && (instruction->i._32bit >> 12) & 0b1 == 0b1) {
+
+        ret = armv6m_ins_BL_immediate_T1(armvm, instruction);
+    }
+
+    return ret;
 }
 
 
@@ -1043,6 +1051,49 @@ err:
 }
 
 
+int armv6m_ins_BL_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint32_t S = (instruction->i._32bit >> (16 + 10)) & 0b1;
+    uint32_t imm10 = (instruction->i._32bit >> (16)) & 0b1111111111;
+    uint32_t J1 = (instruction->i._32bit >> (13)) & 0b1;
+    uint32_t J2 = (instruction->i._32bit >> (11)) & 0b1;
+    uint32_t imm11 = instruction->i._32bit & 0b11111111111;
+    uint32_t I1 = ~(J1 ^ S) & 1;
+    uint32_t I2 = ~(J2 ^ S) & 1;
+    uint32_t imm32 = (S << 24) | (I1 << 23) | (I2 << 22) | (imm10 << 12) | (imm11 << 1);
+
+    if (S) {
+        imm32 = imm32 | (0b1111111 << 25);
+    }
+
+    uint32_t pc;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) {
+        fprintf(stderr, "ERROR: Could not read PC.\n");
+        goto err;
+    }
+
+    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
+    pc += 4;
+
+    uint32_t address = pc + imm32;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("BL %0x\n", address);
+
+    pc = pc | 1;
+
+    if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_LR, &pc)) {
+        fprintf(stderr, "ERROR: Could not write LR register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    armv6m_BranchWritePC(armvm, address);
+
+err:
+    return ret;
+}
 /*
 {
     int ret = ARMVM_RET_FAIL;

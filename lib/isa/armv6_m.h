@@ -7,6 +7,7 @@
  * Register definitions
  */
 #define ARMV6M_REG_SP (0b1101)
+#define ARMV6M_REG_LR (0b1110)
 #define ARMV6M_REG_PC (0b1111)
 
 /**
@@ -227,6 +228,7 @@ const char *armv6m_reg_idx_to_string(uint8_t reg_idx);
  */
 const char *armv6m_cond_to_string(enum armv6m_condition_codes cond);
 
+// 16 Bit instructions
 int armv6m_ins_PUSH_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_literal_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
@@ -236,5 +238,8 @@ int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
 int armv6m_ins_LSL_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_ORR_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_STR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+
+// 32 Bit instructions
+int armv6m_ins_BL_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 #endif
