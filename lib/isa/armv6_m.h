@@ -24,7 +24,7 @@ enum armv6m_execution_mode {
  */
 enum armv6m_condition_codes {
     EQ =  0, /**< APSR.Z == 1, Equal */
-    NQ =  1, /**< APSR.Z == 0, Not equal */
+    NE =  1, /**< APSR.Z == 0, Not equal */
     CS =  2, /**< APSR.C == 1, Carry set/Unsigned higher or same*/
     CC =  3, /**< APSR.C == 0, Carry cler/Unsigned lower*/
     MI =  4, /**< APSR.N == 1, Minus/Negative */
@@ -243,6 +243,7 @@ int armv6m_ins_PUSH_T1(struct armvm *armvm, const struct armv6m_instruction *ins
 int armv6m_ins_LDR_literal_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_CMP_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T2(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
