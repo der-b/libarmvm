@@ -244,6 +244,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 11 == 0b01101) {
         ret = armv6m_ins_LDR_immediate_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 7 == 0b101100001) {
+        ret = armv6m_ins_SUB_SP_immediate_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 9 == 0b1011010) {
         ret = armv6m_ins_PUSH_T1(armvm, instruction);
 
@@ -1290,6 +1293,40 @@ int armv6m_ins_CMP_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
     }
 
     if (armv6m_set_APSR(armvm, apsr)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_SUB_SP_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint32_t imm7 = instruction->i._16bit & 0b1111111;
+    uint32_t imm32 = imm7 << 2;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("SUB SP, #%u\n", imm32);
+
+    uint32_t sp;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_SP, &sp)) {
+        fprintf(stderr, "ERROR: Could not read SP register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    sp = sp - imm32;
+
+    if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_SP, &sp)) {
+        fprintf(stderr, "ERROR: Could not write SP register.\n");
         ret = ARMVM_RET_FAIL;
         goto err;
     }
