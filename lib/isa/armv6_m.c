@@ -232,6 +232,10 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 6 == 0b0100001100) {
         ret = armv6m_ins_ORR_register_T1(armvm, instruction);
 
+    } else if (   instruction->i._16bit >> 8 == 0b01000100
+               && ((instruction->i._16bit >> 3) & 0b1111) == 0b1101) {
+        ret = armv6m_ins_ADD_SP_register_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 8 == 0b01000110) {
         ret = armv6m_ins_MOV_register_T1(armvm, instruction);
 
@@ -1384,6 +1388,46 @@ err:
 }
 
 
+int armv6m_ins_ADD_SP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint32_t DM = (instruction->i._16bit >> 7) & 0x1;
+    uint32_t Rdm = (instruction->i._16bit & 0b111) | DM << 3;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("ADD %s, SP\n", armv6m_reg_idx_to_string(Rdm));
+
+    uint32_t dm;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rdm, &dm)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t sp;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_SP, &sp)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t address = dm + sp;
+    if (ARMV6M_REG_PC == Rdm) {
+        armv6m_ALUWritePC(armvm, address);
+    } else {
+        if (armvm->regs->write_gpr(armvm->regs->data, Rdm, &address)) {
+            fprintf(stderr, "ERROR: Could not write gpr.\n");
+            goto err;
+        }
+
+        if (armv6m_update_pc(armvm, instruction)) {
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
+    }
+
+
+err:
+    return ret;
+}
 /*
 {
     int ret = ARMVM_RET_FAIL;
