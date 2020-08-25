@@ -244,6 +244,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 11 == 0b01101) {
         ret = armv6m_ins_LDR_immediate_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 11 == 0b10010) {
+        ret = armv6m_ins_STR_immediate_T2(armvm, instruction);
+
     } else if (instruction->i._16bit >> 7 == 0b101100001) {
         ret = armv6m_ins_SUB_SP_immediate_T1(armvm, instruction);
 
@@ -1339,6 +1342,47 @@ int armv6m_ins_SUB_SP_immediate_T1(struct armvm *armvm, const struct armv6m_inst
 err:
     return ret;
 }
+
+
+int armv6m_ins_STR_immediate_T2(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint32_t imm8 = instruction->i._16bit & 0xFF;
+    uint32_t imm32 = imm8 << 2;
+    uint8_t Rt = (instruction->i._16bit >> 8) & 0b111;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("STR %s, [SP, #%u]\n", armv6m_reg_idx_to_string(Rt),
+                                     imm32);
+
+    uint32_t t;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rt, &t)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t n;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_SP, &n)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t address = n + imm32;
+
+    if (armvm->mem->write_word_unaligned(armvm->mem->data, address, &t)) {
+        fprintf(stderr, "ERROR: Could not write to memory.\n");
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
 
 /*
 {
