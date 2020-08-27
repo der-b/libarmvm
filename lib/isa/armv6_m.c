@@ -988,6 +988,11 @@ int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
         goto err;
     }
 
+    if (armvm->regs->write_gpr(armvm->regs->data, Rt, &data)) {
+        fprintf(stderr, "ERROR: Could not write gpr.\n");
+        goto err;
+    }
+
     if (armv6m_update_pc(armvm, instruction)) {
         ret = ARMVM_RET_FAIL;
         goto err;
