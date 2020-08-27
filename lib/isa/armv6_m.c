@@ -1168,12 +1168,13 @@ int armv6m_ins_MOV_register_T1(struct armvm *armvm, const struct armv6m_instruct
             fprintf(stderr, "ERROR: Could not write gpr.\n");
             goto err;
         }
+
+        if (armv6m_update_pc(armvm, instruction)) {
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
     }
 
-    if (armv6m_update_pc(armvm, instruction)) {
-        ret = ARMVM_RET_FAIL;
-        goto err;
-    }
 
 err:
     return ret;
