@@ -225,6 +225,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 11 == 0b00101) {
         ret = armv6m_ins_CMP_immediate_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 11 == 0b00110) {
+        ret = armv6m_ins_ADD_immediate_T2(armvm, instruction);
+
     } else if (instruction->i._16bit >> 11 == 0b00111) {
         ret = armv6m_ins_SUB_immediate_T2(armvm, instruction);
 
@@ -1700,6 +1703,62 @@ int armv6m_ins_LDRB_immediate_T1(struct armvm *armvm, const struct armv6m_instru
 
     uint32_t data2 = (data & 0xff);
     if (armvm->regs->write_gpr(armvm->regs->data, Rt, &data2)) {
+        fprintf(stderr, "ERROR: Could not write gpr.\n");
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_ADD_immediate_T2(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rdn = (instruction->i._16bit >> 8) & 0b111;
+    uint8_t imm8 = instruction->i._16bit & 0xff;
+    uint32_t imm32 = ((uint32_t)imm8);
+
+    PRINT_PC(armvm);
+    PRINT_ASM("ADDS %s, #%u\n", armv6m_reg_idx_to_string(Rdn),
+                                 imm32);
+
+    uint32_t dn;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rdn, &dn)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t apsr = 0;
+    if (INT32_MAX - Rdn <= imm32) {
+        apsr |= APSR_V;
+    }
+
+    if (UINT32_MAX - Rdn <= imm32) {
+        apsr |= APSR_C;
+    }
+
+    if (0 == Rdn + imm32) {
+        apsr |= APSR_Z;
+    }
+
+    if (0 > Rdn + imm32) {
+        apsr |= APSR_N;
+    }
+
+    if (armv6m_set_APSR(armvm, apsr)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    dn += imm32;
+
+    if (armvm->regs->write_gpr(armvm->regs->data, Rdn, &dn)) {
         fprintf(stderr, "ERROR: Could not write gpr.\n");
         goto err;
     }
