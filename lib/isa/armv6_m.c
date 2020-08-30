@@ -216,8 +216,12 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
 
     if (instruction->i._16bit >> 6 == 0b0000000000) {
         ret = armv6m_ins_MOV_register_T2(armvm, instruction);
+
     } else if (instruction->i._16bit >> 11 == 0b00000) {
         ret = armv6m_ins_LSL_immediate_T1(armvm, instruction);
+
+    } else if (instruction->i._16bit >> 9 == 0b0001110) {
+        ret = armv6m_ins_ADD_immediate_T1(armvm, instruction);
 
     } else if (instruction->i._16bit >> 11 == 0b00100) {
         ret = armv6m_ins_MOV_immediate_T1(armvm, instruction);
@@ -1735,19 +1739,19 @@ int armv6m_ins_ADD_immediate_T2(struct armvm *armvm, const struct armv6m_instruc
     }
 
     uint32_t apsr = 0;
-    if (INT32_MAX - Rdn <= imm32) {
+    if (INT32_MAX - dn <= imm32) {
         apsr |= APSR_V;
     }
 
-    if (UINT32_MAX - Rdn <= imm32) {
+    if (UINT32_MAX - dn <= imm32) {
         apsr |= APSR_C;
     }
 
-    if (0 == Rdn + imm32) {
+    if (0 == dn + imm32) {
         apsr |= APSR_Z;
     }
 
-    if (0 > Rdn + imm32) {
+    if (0 > dn + imm32) {
         apsr |= APSR_N;
     }
 
@@ -1759,6 +1763,64 @@ int armv6m_ins_ADD_immediate_T2(struct armvm *armvm, const struct armv6m_instruc
     dn += imm32;
 
     if (armvm->regs->write_gpr(armvm->regs->data, Rdn, &dn)) {
+        fprintf(stderr, "ERROR: Could not write gpr.\n");
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_ADD_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rd = instruction->i._16bit & 0b111;
+    uint8_t Rn = (instruction->i._16bit >> 3) & 0b111;
+    uint8_t imm3 = (instruction->i._16bit >> 6) & 0b111;
+    uint32_t imm32 = ((uint32_t)imm3);
+
+    PRINT_PC(armvm);
+    PRINT_ASM("ADDS %s, %s, #%u\n", armv6m_reg_idx_to_string(Rd),
+                                    armv6m_reg_idx_to_string(Rn),
+                                    imm32);
+
+    uint32_t n;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rn, &n)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t apsr = 0;
+    if (INT32_MAX - n <= imm32) {
+        apsr |= APSR_V;
+    }
+
+    if (UINT32_MAX - n <= imm32) {
+        apsr |= APSR_C;
+    }
+
+    if (0 == n + imm32) {
+        apsr |= APSR_Z;
+    }
+
+    if (0 > n + imm32) {
+        apsr |= APSR_N;
+    }
+
+    if (armv6m_set_APSR(armvm, apsr)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    n += imm32;
+
+    if (armvm->regs->write_gpr(armvm->regs->data, Rd, &n)) {
         fprintf(stderr, "ERROR: Could not write gpr.\n");
         goto err;
     }
