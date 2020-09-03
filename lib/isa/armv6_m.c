@@ -220,6 +220,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 11 == 0b00000) {
         ret = armv6m_ins_LSL_immediate_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 9 == 0b0001100) {
+        ret = armv6m_ins_ADD_register_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 9 == 0b0001110) {
         ret = armv6m_ins_ADD_immediate_T1(armvm, instruction);
 
@@ -1823,6 +1826,73 @@ int armv6m_ins_ADD_immediate_T1(struct armvm *armvm, const struct armv6m_instruc
     if (armvm->regs->write_gpr(armvm->regs->data, Rd, &n)) {
         fprintf(stderr, "ERROR: Could not write gpr.\n");
         goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_ADD_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rd = instruction->i._16bit & 0b111;
+    uint8_t Rn = (instruction->i._16bit >> 3) & 0b111;
+    uint8_t Rm = (instruction->i._16bit >> 6) & 0b111;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("ADDS %s, %s, %s\n", armv6m_reg_idx_to_string(Rd),
+                                    armv6m_reg_idx_to_string(Rn),
+                                    armv6m_reg_idx_to_string(Rm));
+
+    uint32_t n;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rn, &n)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t m;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rm, &m)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t res = n + m;
+
+    if (ARMV6M_REG_PC == Rd) {
+        armv6m_ALUWritePC(armvm, res);
+    } else {
+        if (armvm->regs->read_gpr(armvm->regs->data, Rd, &res)) {
+            fprintf(stderr, "ERROR: Could not write gpr.\n");
+            goto err;
+        }
+
+        uint32_t apsr = 0;
+        if (INT32_MAX - n <= m) {
+             SET_APSR_V(apsr);
+        }
+
+        if (UINT32_MAX - n <= m) {
+            SET_APSR_C(apsr);
+        }
+
+        if (0 == res) {
+            SET_APSR_Z(apsr);
+        }
+
+        if (0 > res) {
+            SET_APSR_N(apsr);
+        }
+
+        if (armv6m_set_APSR(armvm, apsr)) {
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
     }
 
     if (armv6m_update_pc(armvm, instruction)) {
