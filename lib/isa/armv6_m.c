@@ -1255,19 +1255,19 @@ int armv6m_ins_SUB_immediate_T2(struct armvm *armvm, const struct armv6m_instruc
 
     uint32_t apsr = 0;
     if (INT32_MAX - dn <= imm32) {
-        apsr |= APSR_V;
+         SET_APSR_V(apsr);
     }
 
     if (UINT32_MAX - dn <= imm32) {
-        apsr |= APSR_C;
+        SET_APSR_C(apsr);
     }
 
     if (0 == dn + imm32) {
-        apsr |= APSR_Z;
+        SET_APSR_Z(apsr);
     }
 
     if (0 > dn + imm32) {
-        apsr |= APSR_N;
+        SET_APSR_N(apsr);
     }
 
     if (armv6m_set_APSR(armvm, apsr)) {
