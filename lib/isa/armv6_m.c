@@ -251,6 +251,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
                && ((instruction->i._16bit >> 3) & 0b1111) == 0b1101) {
         ret = armv6m_ins_ADD_SP_register_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 7 == 0b010001110) {
+        ret = armv6m_ins_BX_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 8 == 0b01000110) {
         ret = armv6m_ins_MOV_register_T1(armvm, instruction);
 
@@ -376,6 +379,40 @@ err:
 int armv6m_BLXWritePC(struct armvm *armvm, uint32_t address)
 {
     int ret; 
+
+    ret = armv6m_set_EPSR_T(armvm, address & 0x1);
+    if (ret) {
+        goto err;
+    }
+    ret = armv6m_BranchTo(armvm, address & 0xFFFFFFFE);
+    if (ret) {
+        goto err;
+    }
+    return ARMVM_RET_SUCCESS;
+err:
+    return ARMVM_RET_FAIL;
+}
+
+
+int armv6m_BXWritePC(struct armvm *armvm, uint32_t address)
+{
+    int ret; 
+
+    assert(armvm);
+    assert(armvm->ci);
+    assert(armvm->ci->data);
+
+    struct libarmvm_ci *ci = armvm->ci->data;
+    assert(ci->isa == ARMV6_M);
+    assert(ci->data);
+
+    struct armv6m *armv6m = ci->data;
+
+    if (armv6m->mode == MODE_HANDLER && (address >> 28) == 0b1111) {
+        printf("TODO: ExceptionReturn()\n");
+        return ARMVM_RET_FAIL;
+    }
+
     ret = armv6m_set_EPSR_T(armvm, address & 0x1);
     if (ret) {
         goto err;
@@ -598,11 +635,11 @@ const char *armv6m_reg_idx_to_string(uint8_t reg_idx)
         case 12:
             return "R12";
         case 13:
-            return "SP/R13";
+            return "SP";
         case 14:
-            return "LR/R14";
+            return "LR";
         case 15:
-            return "PC/R15";
+            return "PC";
         default:
             return "<unknown register>";
     }
@@ -2003,6 +2040,30 @@ int armv6m_ins_ADD_SP_immediate_T2(struct armvm *armvm, const struct armv6m_inst
     }
 
     if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_BX_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rm = (instruction->i._16bit >> 3) & 0b1111;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("BX %s\n", armv6m_reg_idx_to_string(Rm));
+
+    uint32_t m;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rm, &m)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    if (armv6m_BXWritePC(armvm, m)) {
         ret = ARMVM_RET_FAIL;
         goto err;
     }

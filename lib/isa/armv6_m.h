@@ -132,6 +132,15 @@ int armv6m_BLXWritePC(struct armvm *armvm, uint32_t address);
 
 
 /**
+ * @brief Interworking branch.
+ * See BXWritePC() in ARMv6-M Architecture Reference Manual
+ *
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_BXWritePC(struct armvm *armvm, uint32_t address);
+
+
+/**
  * @brief Sets the Application Program Status register.
  *
  * @see APSR_N
@@ -248,6 +257,7 @@ int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruct
 int armv6m_ins_CMP_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_B_T2(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_BX_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MOV_register_T2(struct armvm *armvm, const struct armv6m_instruction *instruction);
