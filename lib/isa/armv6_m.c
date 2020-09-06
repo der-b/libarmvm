@@ -247,6 +247,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 6 == 0b0100001100) {
         ret = armv6m_ins_ORR_register_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 6 == 0b0100001101) {
+        ret = armv6m_ins_MUL_T1(armvm, instruction);
+
     } else if (   instruction->i._16bit >> 8 == 0b01000100
                && ((instruction->i._16bit >> 3) & 0b1111) == 0b1101) {
         ret = armv6m_ins_ADD_SP_register_T1(armvm, instruction);
@@ -2064,6 +2067,58 @@ int armv6m_ins_BX_T1(struct armvm *armvm, const struct armv6m_instruction *instr
     }
 
     if (armv6m_BXWritePC(armvm, m)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_MUL_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rdm = (instruction->i._16bit) & 0b111;
+    uint8_t Rn = (instruction->i._16bit >> 3) & 0b111;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("MULS %s, %s\n", armv6m_reg_idx_to_string(Rdm), armv6m_reg_idx_to_string(Rn));
+
+    int32_t dm;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rdm, &dm)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    int32_t n;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rn, &n)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    int32_t result = dm * n;
+
+    uint32_t apsr = 0;
+    if (armv6m_get_APSR(armvm, &apsr)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (result & (0x1 << 31)) {
+        SET_APSR_N(apsr);
+    }
+
+    if (0 == result) {
+        SET_APSR_Z(apsr);
+    }
+
+    if (armv6m_set_APSR(armvm, apsr)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
         ret = ARMVM_RET_FAIL;
         goto err;
     }
