@@ -141,6 +141,15 @@ int armv6m_BXWritePC(struct armvm *armvm, uint32_t address);
 
 
 /**
+ * @brief Interworking branch.
+ * See LoadWritePC() in ARMv6-M Architecture Reference Manual
+ *
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_LoadWritePC(struct armvm *armvm, uint32_t address);
+
+
+/**
  * @brief Sets the Application Program Status register.
  *
  * @see APSR_N
@@ -249,6 +258,7 @@ const char *armv6m_cond_to_string(enum armv6m_condition_codes cond);
 
 // 16 Bit instructions
 int armv6m_ins_PUSH_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_POP_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_literal_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_LDR_immediate_T2(struct armvm *armvm, const struct armv6m_instruction *instruction);

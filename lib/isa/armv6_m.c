@@ -299,6 +299,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 9 == 0b1011010) {
         ret = armv6m_ins_PUSH_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 9 == 0b1011110) {
+        ret = armv6m_ins_POP_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 12 == 0b1101) {
         if (((instruction->i._16bit >> 9) & 0b111) != 0b111) {
             ret = armv6m_ins_B_T1(armvm, instruction);
@@ -430,6 +433,12 @@ int armv6m_BXWritePC(struct armvm *armvm, uint32_t address)
     return ARMVM_RET_SUCCESS;
 err:
     return ARMVM_RET_FAIL;
+}
+
+
+int armv6m_LoadWritePC(struct armvm *armvm, uint32_t address)
+{
+    return armv6m_BXWritePC(armvm, address);
 }
 
 
@@ -566,7 +575,7 @@ int armv6m_ALUWritePC(struct armvm *armvm, uint32_t address)
 
 uint8_t armv6m_BitCount(uint32_t val)
 {
-    uint8_t sum = 0;
+    uint32_t sum = 0;
     for(size_t i = 0; i < 32; ++i) {
         if ((0x1 << i) & val) {
             sum++;
@@ -733,7 +742,7 @@ int armv6m_ins_PUSH_T1(struct armvm *armvm, const struct armv6m_instruction *ins
             }
 
             if (armvm->mem->write_word(armvm->mem->data, address, &value)) {
-                fprintf(stderr, "ERROR: COuld not write to memory.\n");
+                fprintf(stderr, "ERROR: Could not write to memory.\n");
                 ret = ARMVM_RET_FAIL;
                 goto err;
             }
@@ -2193,6 +2202,95 @@ int armv6m_ins_SUB_register_T1(struct armvm *armvm, const struct armv6m_instruct
             ret = ARMVM_RET_FAIL;
             goto err;
         }
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_POP_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint16_t registers = ((0x1 << 8) & instruction->i._16bit) << 7;
+    registers = registers | (0xff & instruction->i._16bit);
+
+    if (!registers) {
+        ret = ARMVM_RET_UNPREDICTABLE;
+        goto err;
+    }
+
+    uint32_t sp;
+    if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_SP, &sp)) {
+        fprintf(stderr, "ERROR: Could not read SP register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    uint32_t address = sp;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("POP ");
+    uint8_t first = 1;
+    for (size_t i = 0; i <= 7; ++i) {
+        if ((0x1 << i) & registers) {
+            if (!first) {
+                PRINT_ASM(", ");
+            }
+            PRINT_ASM("%s", armv6m_reg_idx_to_string(i));
+            first = 0;
+
+            uint32_t value;
+
+            if (armvm->mem->read_word(armvm->mem->data, address, &value)) {
+                fprintf(stderr, "ERROR: Could not write to memory.\n");
+                ret = ARMVM_RET_FAIL;
+                goto err;
+            }
+
+            if (armvm->regs->read_gpr(armvm->regs->data, i, &value)) {
+                fprintf(stderr, "ERROR: Could not read gpr register.\n");
+                ret = ARMVM_RET_FAIL;
+                goto err;
+            }
+            address += 4;
+        }
+    }
+
+    if ((0x1 << 15) & registers) {
+        if (!first) {
+            PRINT_ASM(", ");
+        }
+        PRINT_ASM("%s", armv6m_reg_idx_to_string(15));
+
+        uint32_t value;
+
+        if (armvm->mem->read_word(armvm->mem->data, address, &value)) {
+            fprintf(stderr, "ERROR: Could not write to memory.\n");
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
+
+        if (armv6m_LoadWritePC(armvm, value)) {
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
+    } else {
+        if (armv6m_update_pc(armvm, instruction)) {
+            ret = ARMVM_RET_FAIL;
+            goto err;
+        }
+    }
+    PRINT_ASM("\n");
+
+
+    uint8_t setBit = armv6m_BitCount(registers);
+    sp = sp + 4 * setBit;
+
+    if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_SP, &sp)) {
+        fprintf(stderr, "ERROR: Could not write SP register.\n");
+        ret = ARMVM_RET_FAIL;
+        goto err;
     }
 
 err:
