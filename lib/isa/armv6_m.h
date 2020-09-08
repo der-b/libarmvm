@@ -290,6 +290,7 @@ int armv6m_ins_ADD_SP_immediate_T2(struct armvm *armvm, const struct armv6m_inst
 int armv6m_ins_ADD_SP_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_MUL_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_SXTB_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_UXTB_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 
 // 32 Bit instructions

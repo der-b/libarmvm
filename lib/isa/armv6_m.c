@@ -302,6 +302,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
     } else if (instruction->i._16bit >> 6 == 0b1011001001) {
         ret = armv6m_ins_SXTB_T1(armvm, instruction);
 
+    } else if (instruction->i._16bit >> 6 == 0b1011001011) {
+        ret = armv6m_ins_UXTB_T1(armvm, instruction);
+
     } else if (instruction->i._16bit >> 9 == 0b1011010) {
         ret = armv6m_ins_PUSH_T1(armvm, instruction);
 
@@ -2364,6 +2367,40 @@ int armv6m_ins_SXTB_T1(struct armvm *armvm, const struct armv6m_instruction *ins
     }
 
     int32_t result = ((int8_t)m);
+
+    if (armvm->regs->read_gpr(armvm->regs->data, Rd, &result)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_UXTB_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+    uint8_t Rd = instruction->i._16bit & 0b111;
+    uint8_t Rm = (instruction->i._16bit >> 3) & 0b111;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("UXTB %s, %s\n", armv6m_reg_idx_to_string(Rd),
+                               armv6m_reg_idx_to_string(Rm));
+
+    uint32_t m;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rm, &m)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t result = ((uint8_t)m);
 
     if (armvm->regs->read_gpr(armvm->regs->data, Rd, &result)) {
         fprintf(stderr, "ERROR: Could not read gpr.\n");
