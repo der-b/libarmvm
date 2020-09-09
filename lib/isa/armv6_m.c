@@ -1092,13 +1092,13 @@ err:
 int armv6m_ins_ORR_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
 {
     int ret = ARMVM_RET_SUCCESS;
-    uint8_t Rm = instruction->i._16bit & 0b111;
-    uint8_t Rdn = (instruction->i._16bit >> 3) & 0b111;
+    uint8_t Rm = (instruction->i._16bit >> 3) & 0b111;
+    uint8_t Rdn = instruction->i._16bit & 0b111;
 
 
     PRINT_PC(armvm);
     PRINT_ASM("ORRS %s, %s\n", armv6m_reg_idx_to_string(Rdn),
-                                     armv6m_reg_idx_to_string(Rm));
+                               armv6m_reg_idx_to_string(Rm));
 
     uint32_t dn;
     if (armvm->regs->read_gpr(armvm->regs->data, Rdn, &dn)) {
