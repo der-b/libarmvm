@@ -292,6 +292,7 @@ int armv6m_ins_MUL_T1(struct armvm *armvm, const struct armv6m_instruction *inst
 int armv6m_ins_SXTB_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_UXTB_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 int armv6m_ins_ASR_immediate_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
+int armv6m_ins_EOR_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction);
 
 
 // 32 Bit instructions
