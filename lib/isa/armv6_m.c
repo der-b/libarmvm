@@ -271,6 +271,9 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
 
     } else if (instruction->i._16bit >> 11 == 0b01001) {
         ret = armv6m_ins_LDR_literal_T1(armvm, instruction);
+
+    } else if (instruction->i._16bit >> 9 == 0b0101111) {
+        ret = armv6m_ins_LDRSH_register_T1(armvm, instruction);
         
     } else if (instruction->i._16bit >> 11 == 0b01100) {
         ret = armv6m_ins_STR_immediate_T1(armvm, instruction);
@@ -2536,6 +2539,57 @@ int armv6m_ins_EOR_register_T1(struct armvm *armvm, const struct armv6m_instruct
 
     if (armv6m_set_APSR(armvm, apsr)) {
         ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+    if (armv6m_update_pc(armvm, instruction)) {
+        ret = ARMVM_RET_FAIL;
+        goto err;
+    }
+
+err:
+    return ret;
+}
+
+
+int armv6m_ins_LDRSH_register_T1(struct armvm *armvm, const struct armv6m_instruction *instruction)
+{
+    int ret = ARMVM_RET_SUCCESS;
+
+    uint8_t Rt = instruction->i._16bit & 0b111;
+    uint8_t Rn = (instruction->i._16bit >> 3) & 0b111;
+    uint8_t Rm = (instruction->i._16bit >> 6) & 0b111;
+
+    PRINT_PC(armvm);
+    PRINT_ASM("LDRSH %s, [%s, %s]\n", armv6m_reg_idx_to_string(Rt),
+                                      armv6m_reg_idx_to_string(Rn),
+                                      armv6m_reg_idx_to_string(Rm));
+
+    uint32_t n;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rn, &n)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t m;
+    if (armvm->regs->read_gpr(armvm->regs->data, Rm, &m)) {
+        fprintf(stderr, "ERROR: Could not read gpr.\n");
+        goto err;
+    }
+
+    uint32_t address = m + n;
+
+    uint16_t data;
+    if (armvm->mem->read_halfword_unaligned(armvm->mem->data, address, &data)) {
+        fprintf(stderr, "ERROR: Could not read from memory.\n");
+        goto err;
+    }
+
+
+    uint32_t value = ((int16_t)data);
+
+    if (armvm->regs->write_gpr(armvm->regs->data, Rt, &value)) {
+        fprintf(stderr, "ERROR: Could not write gpr.\n");
         goto err;
     }
 
