@@ -66,7 +66,7 @@ int armv6m_cleanup(struct armv6m *armv6m)
 }
 
 
-int armv6m_reset(struct armvm *armvm)
+int armv6m_TakeReset(struct armvm *armvm)
 {
     assert(armvm);
     assert(armvm->ci);
@@ -88,8 +88,8 @@ int armv6m_reset(struct armvm *armvm)
 
     // Set registers R-1 to R12 to unknown
 
-    armv6m->vectortable = 0; // TODO: set to VTOR
-    armv6m->mode = MODE_THREAD;
+    uint32_t vectortable = 0; // TODO: set to VTOR
+    armv6m->CurrentMode = MODE_THREAD;
 
     // Set register LR to unknown
 
@@ -101,14 +101,15 @@ int armv6m_reset(struct armvm *armvm)
 
     // TODO: Clear Priority mask
 
-    /* Set SP_main to (vectortable & 0xfffffffb)
+    /* Set SP_main to (vectortable & 0xfffffffc)
      */
-    if (armvm->mem->read_word(armvm->mem->data, armv6m->vectortable, &armv6m->SP_main)) {
+    if (armvm->mem->read_word(armvm->mem->data, vectortable, &armv6m->SP_main)) {
         fprintf(stderr, "ERROR: Could not read vector table.\n");
         goto err;
     }
+    armv6m->SP_main &= 0xfffffffc;
     // Set SP_process to unknown
-    // armv6m->SP_process = 0;
+    armv6m->SP_process = 0;
     
     //Reset stack select to Main thread
     if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_SP, &armv6m->SP_main)) {
@@ -123,7 +124,7 @@ int armv6m_reset(struct armvm *armvm)
 
     // Get address of reset routine (vectortable + 4)
     uint32_t start;
-    if (armvm->mem->read_word(armvm->mem->data, armv6m->vectortable + 4, &start)) {
+    if (armvm->mem->read_word(armvm->mem->data, vectortable + 4, &start)) {
         fprintf(stderr, "ERROR: Could not read address of reset routine.\n");
         goto err;
     }
@@ -438,7 +439,7 @@ int armv6m_BXWritePC(struct armvm *armvm, uint32_t address)
 
     struct armv6m *armv6m = ci->data;
 
-    if (armv6m->mode == MODE_HANDLER && (address >> 28) == 0b1111) {
+    if (armv6m->CurrentMode == MODE_HANDLER && (address >> 28) == 0b1111) {
         printf("TODO: ExceptionReturn()\n");
         return ARMVM_RET_FAIL;
     }

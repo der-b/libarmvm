@@ -58,10 +58,9 @@ struct armv6m_instruction {
  * @brief Execution state of the microcontroller.
  */
 struct armv6m {
-    uint32_t vectortable;             /**< Address of the vector table. */
-    enum armv6m_execution_mode mode;  /**< Execution mode of the virtual machine */
-    uint32_t SP_main;                 /**< Stack pointer for main thread */
-    uint32_t SP_process;              /**< Stack pointer for process */
+    enum armv6m_execution_mode CurrentMode;  /**< Execution mode of the virtual machine */
+    uint32_t SP_main;                        /**< Stack pointer for main thread */
+    uint32_t SP_process;                     /**< Stack pointer for process */
 };
 
 
@@ -83,7 +82,7 @@ int armv6m_cleanup(struct armv6m *armv6m);
  *
  * @return ARMVM_RET_SUCCESS on success.
  */
-int armv6m_reset(struct armvm *armvm);
+int armv6m_TakeReset(struct armvm *armvm);
 
 
 /**

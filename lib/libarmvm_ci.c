@@ -8,7 +8,7 @@
 
 int _reset(struct armvm *armvm)
 {
-    return armv6m_reset(armvm);
+    return armv6m_TakeReset(armvm);
 }
 
 
