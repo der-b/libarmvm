@@ -149,6 +149,33 @@ int armv6m_LoadWritePC(struct armvm *armvm, uint32_t address);
 
 
 /**
+ * @brief Interworking branch.
+ * See ExceptionEntry() in ARMv6-M Architecture Reference Manual
+ *
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_ExceptionEntry(struct armvm *armvm, uint32_t exceptionType);
+
+
+/**
+ * @brief Interworking branch.
+ * See PushStack() in ARMv6-M Architecture Reference Manual
+ *
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_PushStack(struct armvm *armvm, uint32_t exceptionType);
+
+
+/**
+ * @brief Interworking branch.
+ * See ExceptionTaken() in ARMv6-M Architecture Reference Manual
+ *
+ * @return ARMVM_RET_SUCCESS on success.
+ */
+int armv6m_ExceptionTaken(struct armvm *armvm, uint32_t exceptionType);
+
+
+/**
  * @brief Sets the Application Program Status register.
  *
  * @see APSR_N

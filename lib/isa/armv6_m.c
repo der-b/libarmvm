@@ -464,6 +464,32 @@ int armv6m_LoadWritePC(struct armvm *armvm, uint32_t address)
 }
 
 
+int armv6m_ExceptionEntry(struct armvm *armvm, uint32_t exceptionType)
+{
+    int ret = armv6m_PushStack(armvm, exceptionType);
+    if (ARMVM_RET_SUCCESS != ret) {
+        goto err;
+    }
+    ret = armv6m_ExceptionTaken(armvm, exceptionType);
+err:
+    return ret;
+}
+
+
+int armv6m_PushStack(struct armvm *armvm, uint32_t exceptionType)
+{
+    printf("%s(): Not Yet Implemented.\n", __func__);
+    return ARMVM_RET_FAIL;
+}
+
+
+int armv6m_ExceptionTaken(struct armvm *armvm, uint32_t exceptionType)
+{
+    printf("%s(): Not Yet Implemented.\n", __func__);
+    return ARMVM_RET_FAIL;
+}
+
+
 int armv6m_set_APSR(struct armvm *armvm, uint32_t apsr)
 {
     assert(armvm);
