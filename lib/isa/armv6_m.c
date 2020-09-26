@@ -14,7 +14,7 @@
             fprintf(stderr, "ERROR: Could not read gpr.\n"); \
             goto err;\
         }\
-        printf("0x%08x: ", pc);\
+        printf("0x%08x: ", pc - 4);\
     }
 
 #define PRINT_ASM(fmt, ...) \
@@ -101,18 +101,25 @@ int armv6m_TakeReset(struct armvm *armvm)
 
     // TODO: Clear Priority mask
 
+
+    // set CONTROL.SPSEL && CONTROL.nPRIV to 0
+    const uint32_t tmp = 0;
+    if (armvm->regs->write_control(armvm->regs->data, &tmp)) {
+        fprintf(stderr, "ERROR: Could not write stack pointer.\n");
+        goto err;
+    }
+
     /* Set SP_main to (vectortable & 0xfffffffc)
      */
-    if (armvm->mem->read_word(armvm->mem->data, vectortable, &armv6m->SP_main)) {
+    uint32_t SP_main;
+    if (armvm->mem->read_word(armvm->mem->data, vectortable, &SP_main)) {
         fprintf(stderr, "ERROR: Could not read vector table.\n");
         goto err;
     }
-    armv6m->SP_main &= 0xfffffffc;
-    // Set SP_process to unknown
-    armv6m->SP_process = 0;
-    
+    SP_main &= 0xfffffffc;
+
     //Reset stack select to Main thread
-    if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_SP, &armv6m->SP_main)) {
+    if (armvm->regs->write_gpr(armvm->regs->data, ARMV6M_REG_SP, &SP_main)) {
         fprintf(stderr, "ERROR: Could not write stack pointer.\n");
         goto err;
     }
@@ -154,12 +161,12 @@ int armv6m_load_instruction(struct armvm *armvm, uint32_t addr, struct armv6m_in
         fprintf(stderr, "ERROR: Could not read instruction at addr 0x%08x. Return value from read_halfword %d\n", addr, ret);
         goto err;
     }
-    
+
     uint16_t firstBits = ins >> 11;
-    instruction->is32Bit =    0b11101 == firstBits 
+    instruction->is32Bit =    0b11101 == firstBits
                            || 0b11110 == firstBits
                            || 0b11111 == firstBits;
-        
+
     if (!instruction->is32Bit) {
         instruction->i._16bit = ins;
     } else {
@@ -169,7 +176,7 @@ int armv6m_load_instruction(struct armvm *armvm, uint32_t addr, struct armv6m_in
             fprintf(stderr, "ERROR: Could not read second part of 32bit instruction at addr 0x%08x. Return value from read_halfword %d\n", addr + 2, ret);
             goto err;
         }
-        
+
         instruction->i._32bit = (((uint32_t)ins) << 16) | ins2;
 
     }
@@ -192,7 +199,7 @@ int armv6m_load_next_instruction(struct armvm *armvm, struct armv6m_instruction 
         goto err;
     }
 
-    return armv6m_load_instruction(armvm, address, instruction);
+    return armv6m_load_instruction(armvm, address - 4, instruction);
 err:
     return ARMVM_RET_FAIL;
 }
@@ -275,10 +282,10 @@ int _execute_16bit_instruction(struct armvm *armvm, const struct armv6m_instruct
 
     } else if (instruction->i._16bit >> 9 == 0b0101111) {
         ret = armv6m_ins_LDRSH_register_T1(armvm, instruction);
-        
+
     } else if (instruction->i._16bit >> 11 == 0b01100) {
         ret = armv6m_ins_STR_immediate_T1(armvm, instruction);
-        
+
     } else if (instruction->i._16bit >> 11 == 0b01101) {
         ret = armv6m_ins_LDR_immediate_T1(armvm, instruction);
 
@@ -347,8 +354,14 @@ int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruct
     }
 
     if (ARMVM_RET_SUCCESS != ret) {
+        uint32_t pc;
+        if (armvm->regs->read_gpr(armvm->regs->data, ARMV6M_REG_PC, &pc)) {
+            fprintf(stderr, "ERROR: Could not read gpr.\n");
+        }
+        pc -= 4;
+
         if (instruction->is32Bit) {
-            fprintf(stderr, "ERROR: Unknown instruction: 32Bit, 0x%08x, 0b", instruction->i._32bit);
+            fprintf(stderr, "ERROR:0x%08x: Unknown instruction: 32Bit, 0x%08x, 0b", pc, instruction->i._32bit);
             for (size_t i = 0; i < 32; ++i) {
                 fprintf(stderr, "%d", 0x1 & (instruction->i._32bit >> (31-i)));
                 if (0 == (i+1) % 4) {
@@ -357,7 +370,7 @@ int armv6m_execute_instruction(struct armvm *armvm, const struct armv6m_instruct
             }
             fprintf(stderr, "\n");
         } else {
-            fprintf(stderr, "ERROR: Unknown  instruction: 16Bit, 0x%04x, 0b", instruction->i._16bit);
+            fprintf(stderr, "ERROR:0x%08x: Unknown  instruction: 16Bit, 0x%04x, 0b", pc, instruction->i._16bit);
             for (size_t i = 0; i < 16; ++i) {
                 fprintf(stderr, "%d", 0x1 & (instruction->i._16bit >> (15-i)));
                 if (0 == (i+1) % 4) {
@@ -389,10 +402,8 @@ int armv6m_update_pc(struct armvm *armvm, const struct armv6m_instruction *instr
         goto err;
     }
 
-    if (instruction->is32Bit) {
-        pc += 4;
-    } else {
-        pc += 2;
+    if (!instruction->is32Bit) {
+        pc -= 2;
     }
 
 
@@ -409,7 +420,7 @@ err:
 
 int armv6m_BLXWritePC(struct armvm *armvm, uint32_t address)
 {
-    int ret; 
+    int ret;
 
     ret = armv6m_set_EPSR_T(armvm, address & 0x1);
     if (ret) {
@@ -427,7 +438,7 @@ err:
 
 int armv6m_BXWritePC(struct armvm *armvm, uint32_t address)
 {
-    int ret; 
+    int ret;
 
     assert(armvm);
     assert(armvm->ci);
@@ -770,7 +781,7 @@ int armv6m_ins_PUSH_T1(struct armvm *armvm, const struct armv6m_instruction *ins
         ret = ARMVM_RET_FAIL;
         goto err;
     }
-    
+
     PRINT_PC(armvm);
     PRINT_ASM("PUSH ");
     uint8_t first = 1;
@@ -832,14 +843,11 @@ int armv6m_ins_LDR_literal_T1(struct armvm *armvm, const struct armv6m_instructi
         goto err;
     }
 
-    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
-    pc += 4;
-
     uint32_t base = armv6m_Align(pc,4);
 
     uint32_t address;
-    if (add) { 
-        address = base + imm32; 
+    if (add) {
+        address = base + imm32;
     } else {
         address = base - imm32;
     }
@@ -887,7 +895,7 @@ int armv6m_ins_CMP_register_T1(struct armvm *armvm, const struct armv6m_instruct
         ret = ARMVM_RET_FAIL;
         goto err;
     }
-    
+
     uint32_t Rm;
     if (armvm->regs->read_gpr(armvm->regs->data, m, &Rm)) {
         fprintf(stderr, "ERROR: Could not read gp register.\n");
@@ -942,9 +950,6 @@ int armv6m_ins_B_T1(struct armvm *armvm, const struct armv6m_instruction *instru
         ret = ARMVM_RET_FAIL;
         goto err;
     }
-
-    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
-    pc += 4;
 
     uint32_t address = pc + imm32;
 
@@ -1248,9 +1253,6 @@ int armv6m_ins_BL_immediate_T1(struct armvm *armvm, const struct armv6m_instruct
         goto err;
     }
 
-    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
-    pc += 4;
-
     uint32_t address = pc + imm32;
 
     PRINT_PC(armvm);
@@ -1327,9 +1329,6 @@ int armv6m_ins_B_T2(struct armvm *armvm, const struct armv6m_instruction *instru
         ret = ARMVM_RET_FAIL;
         goto err;
     }
-
-    // See section A5.1.2 in the ARMv6-M Architecture Reference Manual
-    pc += 4;
 
     uint32_t address = pc + imm32;
 
@@ -1750,7 +1749,7 @@ int armv6m_ins_LDR_immediate_T2(struct armvm *armvm, const struct armv6m_instruc
 {
     int ret = ARMVM_RET_SUCCESS;
     uint8_t Rt = (instruction->i._16bit >> 8) & 0b111;
-    uint8_t Rn = 13; 
+    uint8_t Rn = 13;
     uint8_t imm8 = instruction->i._16bit & 0xff;
     uint32_t imm32 = ((uint32_t)imm8) << 2;
 

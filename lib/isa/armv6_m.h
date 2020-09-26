@@ -59,8 +59,6 @@ struct armv6m_instruction {
  */
 struct armv6m {
     enum armv6m_execution_mode CurrentMode;  /**< Execution mode of the virtual machine */
-    uint32_t SP_main;                        /**< Stack pointer for main thread */
-    uint32_t SP_process;                     /**< Stack pointer for process */
 };
 
 

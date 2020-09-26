@@ -26,6 +26,9 @@
 struct libarmvm_registers {
     uint32_t gpr[LIBARMVM_GPR_SIZE]; /**< General Purpose Registers: R0-R12, SP/R13, LR/R14, PC/R15 */
     uint32_t psr;     /**< Program Status Register */
+    uint32_t control;     /**< CONTROL register */
+    uint32_t SP_main;
+    uint32_t SP_process;
 };
 
 /**

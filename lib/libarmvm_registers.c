@@ -5,6 +5,9 @@
 #define REG_PC (0b1111)
 #define REG_SP (0b1101)
 
+#define REG_CONTROL_SPSEL (0x1 << 1)
+#define REG_CONTROL_nPRIV (0x1 << 0)
+
 int _read_gpr(void *data, uint8_t reg_id, uint32_t *dest)
 {
     if(LIBARMVM_GPR_SIZE <= reg_id) {
@@ -13,6 +16,10 @@ int _read_gpr(void *data, uint8_t reg_id, uint32_t *dest)
 
     struct libarmvm_registers *regs = data;
     *dest = regs->gpr[reg_id];
+
+    if (REG_PC == reg_id) {
+        *dest += 4;
+    }
 
     return ARMVM_RET_SUCCESS;
 }
@@ -25,7 +32,13 @@ int _write_gpr(void *data, uint8_t reg_id, const uint32_t *src)
     }
 
     struct libarmvm_registers *regs = data;
-    regs->gpr[reg_id] = *src;
+
+    uint32_t copy = *src;
+    if (REG_SP == reg_id) {
+        copy = (copy & ~(0b11));
+    }
+
+    regs->gpr[reg_id] = copy;
 
     return ARMVM_RET_SUCCESS;
 }
@@ -44,6 +57,32 @@ int _write_psr(void *data, const uint32_t *src)
 {
     struct libarmvm_registers *regs = data;
     regs->psr = *src;
+
+    return ARMVM_RET_SUCCESS;
+}
+
+int _read_control(void *data, uint32_t *dest)
+{
+    struct libarmvm_registers *regs = data;
+    *dest = regs->control;
+
+    return ARMVM_RET_SUCCESS;
+}
+
+
+int _write_control(void *data, const uint32_t *src)
+{
+    struct libarmvm_registers *regs = data;
+
+    if ((regs->control & REG_CONTROL_SPSEL) && !(*src & REG_CONTROL_SPSEL)) {
+        regs->SP_process = regs->gpr[REG_SP];
+        regs->gpr[REG_SP] = regs->SP_main;
+
+    } else if (!(regs->control & REG_CONTROL_SPSEL) && (*src & REG_CONTROL_SPSEL)) {
+        regs->SP_main = regs->gpr[REG_SP];
+        regs->gpr[REG_SP] = regs->SP_process;
+    }
+    regs->control = *src;
 
     return ARMVM_RET_SUCCESS;
 }
@@ -83,6 +122,8 @@ int libarmvm_registers_init(struct armvm *armvm)
     armvm->regs->write_gpr = _write_gpr;
     armvm->regs->read_psr = _read_psr;
     armvm->regs->write_psr = _write_psr;
+    armvm->regs->read_control = _read_control;
+    armvm->regs->write_control = _write_control;
 
     return ret;
 err:

@@ -51,8 +51,8 @@ struct armvm_ci {
      * One step normally means on tact of the virtual machine. Since the frequency of
      * the system clock can be changed, the amount of passed simulation time is not
      * fixed.
-     * 
-     * reset() have to be called once before the first call to this function. If this 
+     *
+     * reset() have to be called once before the first call to this function. If this
      * is not done, the behavior of this function is undefined.
      *
      * @param armvm Pointer to the data of the virtual machine.
@@ -129,7 +129,7 @@ struct armvm_memory {
      * @see write_byte
      */
     int (*write_word)(void *data, uint32_t dest_addr, const uint32_t *src);
-    
+
     /**
      * @brief Same as write_byte() but writes a halfword unaligned.
      * @see write_byte
@@ -151,8 +151,8 @@ struct armvm_registers {
     void *data;  /**< Pointer to the data of the register set. */
 
     /**
-     * @brief Read a general purpose register with the id reg_id.
-     * 
+     * @brief Read data from a general purpose register with the id reg_id.
+     *
      * @param data Pointer to the data of the loaded register model.
      * @param reg_id Register to read.
      * @param dest Pointer to location, where the register value shall be stored.
@@ -161,18 +161,18 @@ struct armvm_registers {
     int (* read_gpr)(void *data, uint8_t reg_id, uint32_t *dest);
 
     /**
-     * @brief Writes to a general purpose register with the id reg_id.
-     * 
+     * @brief Writes data to a general purpose register with the id reg_id.
+     *
      * @param data Pointer to the data of the loaded register model.
      * @param reg_id Register to write.
-     * @param dest Pointer to a value to which shall be stored in the gpr. 
+     * @param dest Pointer to a value to which shall be stored in the gpr.
      * @return ARMVM_RET_SUCCESS on success.
      */
     int (* write_gpr)(void *data, uint8_t reg_id, const uint32_t *src);
 
     /**
-     * @brief Read Program Status Register.
-     * 
+     * @brief Reads data from Program Status Register (PSR).
+     *
      * @param data Pointer to the data of the loaded register model.
      * @param dest Pointer to location, where the register value shall be stored.
      * @return ARMVM_RET_SUCCESS on success.
@@ -180,13 +180,31 @@ struct armvm_registers {
     int (* read_psr)(void *data, uint32_t *dest);
 
     /**
-     * @brief Writes to Program Status Register.
-     * 
+     * @brief Writes data to the Program Status Register (PSR).
+     *
      * @param data Pointer to the data of the loaded register model.
-     * @param dest Pointer to a value to which shall be stored in the PSR. 
+     * @param dest Pointer to a value to which shall be stored in the PSR.
      * @return ARMVM_RET_SUCCESS on success.
      */
     int (* write_psr)(void *data, const uint32_t *src);
+
+    /**
+     * @brief Reads data from the CONTROL register.
+     *
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to location, where the register value shall be stored.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* read_control)(void *data, uint32_t *dest);
+
+    /**
+     * @brief Writes data to the CONTROL register.
+     *
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to a value to which shall be stored in the PSR.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* write_control)(void *data, const uint32_t *src);
 };
 
 
