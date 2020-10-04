@@ -205,6 +205,42 @@ struct armvm_registers {
      * @return ARMVM_RET_SUCCESS on success.
      */
     int (* write_control)(void *data, const uint32_t *src);
+
+    /**
+     * @brief Reads data from the SP_main register.
+     *
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to location, where the register value shall be stored.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* read_sp_main)(void *data, uint32_t *dest);
+
+    /**
+     * @brief Writes data to the SP_main register.
+     *
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to a value to which shall be stored in the PSR.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* write_sp_main)(void *data, const uint32_t *src);
+
+    /**
+     * @brief Reads data from the SP_process register.
+     *
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to location, where the register value shall be stored.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* read_sp_process)(void *data, uint32_t *dest);
+
+    /**
+     * @brief Writes data to the SP_process register.
+     *
+     * @param data Pointer to the data of the loaded register model.
+     * @param dest Pointer to a value to which shall be stored in the PSR.
+     * @return ARMVM_RET_SUCCESS on success.
+     */
+    int (* write_sp_process)(void *data, const uint32_t *src);
 };
 
 

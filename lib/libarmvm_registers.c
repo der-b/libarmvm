@@ -61,6 +61,7 @@ int _write_psr(void *data, const uint32_t *src)
     return ARMVM_RET_SUCCESS;
 }
 
+
 int _read_control(void *data, uint32_t *dest)
 {
     struct libarmvm_registers *regs = data;
@@ -86,6 +87,63 @@ int _write_control(void *data, const uint32_t *src)
 
     return ARMVM_RET_SUCCESS;
 }
+
+
+int _read_sp_main(void *data, uint32_t *dest)
+{
+    struct libarmvm_registers *regs = data;
+
+    if (!(regs->control & REG_CONTROL_SPSEL)) {
+        *dest = regs->gpr[REG_SP];
+    } else {
+        *dest = regs->SP_main;
+    }
+
+    return ARMVM_RET_SUCCESS;
+}
+
+
+int _write_sp_main(void *data, const uint32_t *src)
+{
+    struct libarmvm_registers *regs = data;
+
+    if (!(regs->control & REG_CONTROL_SPSEL)) {
+        regs->gpr[REG_SP] = *src;
+    } else {
+        regs->SP_main = *src;
+    }
+
+    return ARMVM_RET_SUCCESS;
+}
+
+
+int _read_sp_process(void *data, uint32_t *dest)
+{
+    struct libarmvm_registers *regs = data;
+
+    if (regs->control & REG_CONTROL_SPSEL) {
+        *dest = regs->gpr[REG_SP];
+    } else {
+        *dest = regs->SP_process;
+    }
+
+    return ARMVM_RET_SUCCESS;
+}
+
+
+int _write_sp_process(void *data, const uint32_t *src)
+{
+    struct libarmvm_registers *regs = data;
+
+    if (regs->control & REG_CONTROL_SPSEL) {
+        regs->gpr[REG_SP] = *src;
+    } else {
+        regs->SP_process = *src;
+    }
+
+    return ARMVM_RET_SUCCESS;
+}
+
 
 int libarmvm_registers_init(struct armvm *armvm)
 {
@@ -124,6 +182,10 @@ int libarmvm_registers_init(struct armvm *armvm)
     armvm->regs->write_psr = _write_psr;
     armvm->regs->read_control = _read_control;
     armvm->regs->write_control = _write_control;
+    armvm->regs->read_sp_main = _read_sp_main;
+    armvm->regs->write_sp_main = _write_sp_main;
+    armvm->regs->read_sp_process = _read_sp_process;
+    armvm->regs->write_sp_process = _write_sp_process;
 
     return ret;
 err:
